@@ -1,0 +1,182 @@
+export ZSH="$HOME/.oh-my-zsh"
+
+# zstyle ':omz:update' mode disabled  # disable automatic updates
+# zstyle ':omz:update' mode auto      # update automatically without asking
+zstyle ':omz:update' mode reminder  # just remind me to update when it's time
+
+DISABLE_MAGIC_FUNCTIONS="true"
+DISABLE_AUTO_UPDATE="true"
+DISABLE_COMPFIX="true"
+plugins=(
+    git 
+    python 
+    zsh-autosuggestions
+    fast-syntax-highlighting
+)
+
+source $ZSH/oh-my-zsh.sh
+
+# User configuration
+
+# nvm
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+
+# PATH
+export PATH="/Users/kylepham/.local/bin:$PATH"
+export PATH="/opt/homebrew/opt/postgresql@16/bin:$PATH"
+export PATH="/opt/homebrew/bin:$PATH"
+export PATH="/usr/local/go/bin:/opt/homebrew/opt/postgresql@16/bin:/Users/kylepham/code/claude-scripts:$PATH"
+
+# Preferred editor
+export EDITOR='nvim'
+
+# Aliases
+alias ll='ls -alF'            # Long listing format with hidden files
+alias la='ls -A'              # List all except . and ..
+alias l='ls -CF'              # Classify files by type
+alias cls='clear'             # Clear terminal screen
+alias ..='cd ..'              # Go up one directory
+alias ...='cd ../..'          # Go up two directories
+alias ....='cd ../../..'      # Go up three directories
+alias bashrc='nvim ~/.bashrc'  # Edit .bashrc
+alias zshrc='nvim ~/.zshrc'    # Edit .zshrc
+alias rl='source ~/.zshrc' # Reload .zshrc
+alias rcls='rl && cls'
+alias gcmm='git commit -m'
+alias vim='nvim'
+
+# Conda Aliases
+alias cona='conda activate' 
+alias conin='conda install -y' 
+alias pipin='pip install -U'
+
+# Safety delete: move files to trash instead of permanently deleting
+mkdir -p ~/.trash
+function safe_rm() {
+    # Strip out common rm flags and just move to trash
+    local files=()
+    for arg in "$@"; do
+        if [[ "$arg" != -* ]]; then
+            files+=("$arg")
+        fi
+    done
+    if [[ ${#files[@]} -gt 0 ]]; then
+        mv "${files[@]}" ~/.trash/
+        echo "Moved to trash: ${files[*]}" 
+    fi
+}
+alias rm='safe_rm'
+alias emptytrash='command rm -rf ~/.trash/*'
+
+# ssh
+alias aol='ssh aol'
+alias col='ssh col'
+
+# Zsh options
+setopt AUTO_CD             # Automatically cd into typed directory names
+setopt HIST_IGNORE_DUPS    # Don't record duplicate history entries
+setopt HIST_REDUCE_BLANKS  # Remove superfluous blanks before recording history
+setopt SHARE_HISTORY       # Share history between all sessions
+setopt HIST_SAVE_NO_DUPS   # Don't write duplicate entries in history file
+setopt APPEND_HISTORY      # Append history to the history file
+setopt INC_APPEND_HISTORY  # Immediately add commands to the history file
+setopt EXTENDED_HISTORY    # Save timestamps in history
+
+# Customize command line
+autoload -Uz compinit
+if [ "$(date +'%j')" != "$(stat -f '%Sm' -t '%j' ~/.zcompdump 2>/dev/null)" ]; then
+    compinit
+else
+    compinit -C
+fi
+
+# The next line updates PATH for the Google Cloud SDK.
+if [ -f '/Users/kylepham/google-cloud-sdk/path.zsh.inc' ]; then . '/Users/kylepham/google-cloud-sdk/path.zsh.inc'; fi
+
+# The next line enables shell command completion for gcloud.
+if [ -f '/Users/kylepham/google-cloud-sdk/completion.zsh.inc' ]; then . '/Users/kylepham/google-cloud-sdk/completion.zsh.inc'; fi
+
+function dev() {
+    local folder="$1"
+    
+    if [[ -z "$folder" ]]; then
+        echo "Usage: dev <folder>"
+        return 1
+    fi
+    
+    if [[ ! -d "$folder" ]]; then
+        echo "Error: Directory '$folder' does not exist"
+        return 1
+    fi
+    
+    # Get absolute path and session name
+    local abs_path=$(realpath "$folder")
+    local session_name=$(basename "$abs_path")
+    
+    # Kill existing session if it exists
+    tmux kill-session -t "$session_name" 2>/dev/null
+    
+    # Create new session and run setup script
+    tmux new-session -d -s "$session_name" -c "$abs_path" 'tmux-setup; exec $SHELL'
+    tmux attach-session -t "$session_name"
+}
+
+# yazi
+function y() {
+	local tmp="$(mktemp -t "yazi-cwd.XXXXXX")" cwd
+	yazi "$@" --cwd-file="$tmp"
+	IFS= read -r -d '' cwd < "$tmp"
+	[ -n "$cwd" ] && [ "$cwd" != "$PWD" ] && builtin cd -- "$cwd"
+	rm -f -- "$tmp"
+}
+
+# Load environment variables from credentials file
+if [ -f "$HOME/.credentials/.env" ]; then
+    source "$HOME/.credentials/.env"
+    # Set environment variables for GUI applications on macOS
+    launchctl setenv ANTHROPIC_API_KEY "$ANTHROPIC_API_KEY"
+    launchctl setenv OPENAI_API_KEY "$OPENAI_API_KEY"
+    launchctl setenv GITHUB_PERSONAL_ACCESS_TOKEN "$GITHUB_PERSONAL_ACCESS_TOKEN"
+    launchctl setenv PERPLEXITY_API_KEY "$PERPLEXITY_API_KEY"
+    launchctl setenv FIRECRAWL_API_KEY "$FIRECRAWL_API_KEY"
+    launchctl setenv ASTA_API_KEY "$ASTA_API_KEY"
+else
+    echo "Warning: ~/.credentials/.env not found"
+fi
+
+# Task Master aliases added on 7/22/2025
+alias tm='task-master'
+alias taskmaster='task-master'
+
+# WordReference French CLI tool (available as 'wr' command)
+# Usage: wr [word] [direction] 
+# Direction: fr (French to English, default) or en (English to French)
+# Examples: wr bonjour, wr hello en
+
+# tmux-sessionizer keybindings
+bindkey -s '^f' "tmux-sessionizer\n"
+bindkey -s '^[h' "tmux-sessionizer -s 0\n"
+bindkey -s '^[t' "tmux-sessionizer -s 1\n"
+bindkey -s '^[n' "tmux-sessionizer -s 2\n"
+bindkey -s '^[s' "tmux-sessionizer -s 3\n"
+
+# >>> conda initialize >>>
+# !! Contents within this block are managed by 'conda init' !!
+__conda_setup="$('/Users/kylepham/miniconda3/bin/conda' 'shell.zsh' 'hook' 2> /dev/null)"
+if [ $? -eq 0 ]; then
+    eval "$__conda_setup"
+else
+    if [ -f "/Users/kylepham/miniconda3/etc/profile.d/conda.sh" ]; then
+        . "/Users/kylepham/miniconda3/etc/profile.d/conda.sh"
+    else
+        export PATH="/Users/kylepham/miniconda3/bin:$PATH"
+    fi
+fi
+unset __conda_setup
+# <<< conda initialize <<<
+
+# starship activation
+eval "$(starship init zsh)"
+

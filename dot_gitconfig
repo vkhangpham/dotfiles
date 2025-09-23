@@ -1,0 +1,7 @@
+[user]
+	name = kyle
+	email = vkhangpham@gmail.com
+[http]
+	postBuffer = 524288000
+[coderabbit]
+	machineId = cli/6137cc8a396749cf857f1f9449b9f770
