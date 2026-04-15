@@ -9,8 +9,11 @@ export OMARCHY_PATH="$HOME/.local/share/omarchy"
 export PATH="$OMARCHY_PATH/bin:$PATH:$HOME/.local/bin"
 
 # macOS/Homebrew fallbacks
-[[ -d /opt/homebrew/bin ]] && export PATH="/opt/homebrew/bin:$PATH"
 [[ -d /usr/local/bin ]] && export PATH="/usr/local/bin:$PATH"
+[[ -d /opt/homebrew/bin ]] && export PATH="/opt/homebrew/bin:$PATH"
+
+# Prefer sharp prebuilt binaries over Homebrew libvips source builds.
+export SHARP_IGNORE_GLOBAL_LIBVIPS=1
 
 # Optional local secrets. Keep values out of the repo.
 if [[ -f "$HOME/.credentials/.env" ]]; then
