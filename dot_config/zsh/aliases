@@ -12,7 +12,21 @@ else
   alias ff="fzf --preview 'bat --style=numbers --color=always {}'"
 fi
 alias eff='$EDITOR "$(ff)"'
-sff() { if [ $# -eq 0 ]; then echo "Usage: sff <destination> (e.g. sff host:/tmp/)"; return 1; fi; local file; file=$(find . -type f -printf '%T@\t%p\n' | sort -rn | cut -f2- | ff) && [ -n "$file" ] && scp "$file" "$1"; }
+sff() {
+  if [ $# -eq 0 ]; then
+    echo "Usage: sff <destination> (e.g. sff host:/tmp/)"
+    return 1
+  fi
+
+  local file
+  if stat -f '%m' . >/dev/null 2>&1; then
+    file=$(find . -type f -exec stat -f '%m\t%N' {} + 2>/dev/null | sort -rn | cut -f2- | ff)
+  else
+    file=$(find . -type f -printf '%T@\t%p\n' 2>/dev/null | sort -rn | cut -f2- | ff)
+  fi
+
+  [ -n "$file" ] && scp "$file" "$1"
+}
 
 if command -v zoxide &> /dev/null; then
   alias cd="zd"
@@ -34,7 +48,14 @@ if command -v zoxide &> /dev/null; then
 fi
 
 open() (
-  xdg-open "$@" >/dev/null 2>&1 &
+  if [[ "$OSTYPE" == darwin* ]]; then
+    command open "$@" >/dev/null 2>&1 &
+  elif command -v xdg-open >/dev/null 2>&1; then
+    xdg-open "$@" >/dev/null 2>&1 &
+  else
+    echo "No opener available for this platform" >&2
+    return 1
+  fi
 )
 
 # Directories
@@ -61,7 +82,7 @@ n() {
 
 # Git
 alias g='git'
-# alias ga='git add'
+alias gcmm='git commit -m'
 alias gcm='git commit -m'
 alias gcam='git commit -a -m'
 alias gcad='git commit -a --amend'

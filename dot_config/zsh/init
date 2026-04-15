@@ -14,18 +14,36 @@ if command -v try >/dev/null 2>&1; then
   eval "$(SHELL=/bin/zsh command try init ~/Work/tries)"
 fi
 
-if [[ -f /opt/homebrew/opt/fzf/shell/completion.zsh ]]; then
-  source /opt/homebrew/opt/fzf/shell/completion.zsh
-elif [[ -f /usr/local/opt/fzf/shell/completion.zsh ]]; then
-  source /usr/local/opt/fzf/shell/completion.zsh
-fi
+if [[ -o interactive ]] && [[ -t 0 ]]; then
+  if [[ -f /opt/homebrew/opt/fzf/shell/completion.zsh ]]; then
+    source /opt/homebrew/opt/fzf/shell/completion.zsh
+  elif [[ -f /usr/local/opt/fzf/shell/completion.zsh ]]; then
+    source /usr/local/opt/fzf/shell/completion.zsh
+  fi
 
-if [[ -f /opt/homebrew/opt/fzf/shell/key-bindings.zsh ]]; then
-  source /opt/homebrew/opt/fzf/shell/key-bindings.zsh
-elif [[ -f /usr/local/opt/fzf/shell/key-bindings.zsh ]]; then
-  source /usr/local/opt/fzf/shell/key-bindings.zsh
-fi
+  if [[ -f /opt/homebrew/opt/fzf/shell/key-bindings.zsh ]]; then
+    source /opt/homebrew/opt/fzf/shell/key-bindings.zsh
+  elif [[ -f /usr/local/opt/fzf/shell/key-bindings.zsh ]]; then
+    source /usr/local/opt/fzf/shell/key-bindings.zsh
+  fi
 
-if command -v tmux-sessionizer >/dev/null 2>&1; then
-  bindkey -s '^f' 'tmux-sessionizer\n'
+  if [[ -f "$HOME/.bun/_bun" ]]; then
+    source "$HOME/.bun/_bun"
+  fi
+
+  if [[ -f /opt/homebrew/share/zsh-autosuggestions/zsh-autosuggestions.zsh ]]; then
+    source /opt/homebrew/share/zsh-autosuggestions/zsh-autosuggestions.zsh
+  elif [[ -f /usr/local/share/zsh-autosuggestions/zsh-autosuggestions.zsh ]]; then
+    source /usr/local/share/zsh-autosuggestions/zsh-autosuggestions.zsh
+  fi
+
+  if command -v tmux-sessionizer >/dev/null 2>&1; then
+    bindkey -s '^f' 'tmux-sessionizer\n'
+  fi
+
+  if [[ -f /opt/homebrew/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh ]]; then
+    source /opt/homebrew/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+  elif [[ -f /usr/local/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh ]]; then
+    source /usr/local/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+  fi
 fi

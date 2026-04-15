@@ -1,0 +1,38 @@
+# Hermes workflow helpers
+_HERMES_SOURCE_REPO="${HERMES_SOURCE_REPO:-$HOME/.hermes/hermes-agent}"
+_HERMES_SYNC_SPEC="${HERMES_SYNC_SPEC:-$HOME/Code/dotfiles/docs/hermes-cli-customizations.md}"
+_HERMES_CAVEMAN_REPO="https://github.com/JuliusBrussee/caveman"
+
+hsrc() {
+  cd "$_HERMES_SOURCE_REPO" || return
+}
+
+hdoc() {
+  "$EDITOR" "$_HERMES_SYNC_SPEC"
+}
+
+hsync() {
+  local repo="${1:-$_HERMES_SOURCE_REPO}"
+
+  [[ -d "$repo" ]] || {
+    echo "Hermes repo not found: $repo"
+    return 1
+  }
+
+  [[ -f "$_HERMES_SYNC_SPEC" ]] || {
+    echo "Hermes sync spec not found: $_HERMES_SYNC_SPEC"
+    return 1
+  }
+
+  local prompt
+  prompt=$(printf '%s\n' \
+    "In this Hermes checkout, recreate the behavior specified in $_HERMES_SYNC_SPEC." \
+    "Read that file first." \
+    "Relevant Caveman repo: $_HERMES_CAVEMAN_REPO" \
+    "Inspect current CLI startup and status-bar code, implement equivalent behavior for this checkout, update the focused CLI tests, and run them.")
+
+  (
+    cd "$repo" || exit 1
+    command hermes chat -q "$prompt"
+  )
+}

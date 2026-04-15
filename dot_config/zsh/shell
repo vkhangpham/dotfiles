@@ -10,8 +10,14 @@ setopt AUTO_CD
 
 # Completion
 mkdir -p "$HOME/.cache/zsh"
+if [[ -d "$HOME/.docker/completions" ]]; then
+  fpath=("$HOME/.docker/completions" $fpath)
+fi
 autoload -Uz compinit
 compinit -d "$HOME/.cache/zsh/.zcompdump"
+zstyle ':completion:*' matcher-list 'm:{a-z}={A-Za-z}'
+zstyle ':completion:*' menu select
+zstyle ':completion:*' group-name ''
 
 # Ensure command hashing is off for mise-like tool shims
 unsetopt HASH_CMDS

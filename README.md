@@ -31,6 +31,7 @@ This repo uses `chezmoi`-style naming:
 ### macOS
 - split zsh layout under `dot_config/zsh/`
 - tiny `dot_zshrc.tmpl` loader
+- `dot_tmux.conf` loader that points tmux at XDG config
 - sanitized Claude Code settings under `dot_claude/settings.json`
 - placeholder Codex config under `dot_codex/config.toml`
 
@@ -74,6 +75,7 @@ After applying shell changes, restart shell or source the relevant Omarchy Bash 
 Use the split zsh config:
 - `~/.zshrc` should stay a tiny loader
 - main config lives under `~/.config/zsh/`
+- tmux should enter through `~/.tmux.conf`, which loads `~/.config/tmux/tmux.conf`
 
 Secrets should come from a local untracked file:
 - `~/.credentials/.env`
@@ -114,5 +116,5 @@ Recent cleanup choices:
 - replaced old repo tmux stack with XDG tmux config
 - replaced stale Neovim layout with current local config
 - moved Git to XDG config
-- split macOS zsh to mirror Omarchy Bash structure
+- kept macOS zsh split into smaller files while removing the Oh My Zsh dependency
 - sanitized agent config before committing
