@@ -1,0 +1,3 @@
+# Current Linux source-of-truth machine does not persist shareable Codex
+# preferences beyond local auth state in ~/.codex/auth.json.
+# Keep auth out of the repo. Add future safe defaults here when they become real.

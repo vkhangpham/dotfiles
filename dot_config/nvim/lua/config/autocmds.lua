@@ -6,34 +6,35 @@
 --
 -- Or remove existing autocmds by their group name (which is prefixed with `lazyvim_` for the defaults)
 -- e.g. vim.api.nvim_del_augroup_by_name("lazyvim_wrap_spell")
-vim.api.nvim_create_autocmd("FileType", {
-  pattern = { "markdown", "text" },
-  callback = function()
-    vim.opt_local.spell = false
-    vim.opt_local.conceallevel = 0
-    vim.opt_local.concealcursor = ""
-    vim.opt_local.syntax = "off"
-  end,
-})
---
--- Auto-refresh gitsigns when focus comes back, buffer is entered, or Lazygit exits
-vim.api.nvim_create_autocmd({ "FocusGained", "BufEnter" }, {
-  callback = function()
-    local ok, gitsigns = pcall(require, "gitsigns")
-    if ok then
-      gitsigns.refresh()
-    end
-    vim.cmd("checktime")
-  end,
-})
 
--- If you use Lazygit via :LazyGit or toggleterm
-vim.api.nvim_create_autocmd("TermClose", {
-  pattern = "*lazygit*",
-  callback = function()
-    local ok, gitsigns = pcall(require, "gitsigns")
-    if ok then
-      gitsigns.refresh()
-    end
+local markdown_noise_filetypes = {
+  markdown = true,
+  ["markdown.mdx"] = true,
+  quarto = true,
+}
+
+local function disable_markdown_noise(bufnr)
+  if not vim.api.nvim_buf_is_valid(bufnr) then
+    return
+  end
+
+  if not markdown_noise_filetypes[vim.bo[bufnr].filetype] then
+    return
+  end
+
+  for _, win in ipairs(vim.fn.win_findbuf(bufnr)) do
+    pcall(vim.api.nvim_set_option_value, "spell", false, { win = win })
+  end
+
+  vim.diagnostic.enable(false, { bufnr = bufnr })
+  vim.diagnostic.reset(nil, bufnr)
+end
+
+local markdown_group = vim.api.nvim_create_augroup("user_disable_markdown_noise", { clear = true })
+
+vim.api.nvim_create_autocmd({ "FileType", "BufWinEnter", "LspAttach" }, {
+  group = markdown_group,
+  callback = function(event)
+    disable_markdown_noise(event.buf)
   end,
 })

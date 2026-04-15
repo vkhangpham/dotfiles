@@ -1,0 +1,17 @@
+# History control
+HISTSIZE=32768
+SAVEHIST=$HISTSIZE
+setopt APPEND_HISTORY
+setopt HIST_IGNORE_ALL_DUPS
+setopt HIST_IGNORE_SPACE
+setopt HIST_FIND_NO_DUPS
+setopt EXTENDED_HISTORY
+setopt AUTO_CD
+
+# Completion
+mkdir -p "$HOME/.cache/zsh"
+autoload -Uz compinit
+compinit -d "$HOME/.cache/zsh/.zcompdump"
+
+# Ensure command hashing is off for mise-like tool shims
+unsetopt HASH_CMDS

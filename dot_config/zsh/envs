@@ -1,0 +1,38 @@
+# Editor used by CLI + helpers
+export EDITOR="nvim"
+export VISUAL="$EDITOR"
+export SUDO_EDITOR="$EDITOR"
+export BAT_THEME=ansi
+
+# Match Omarchy path helpers where possible
+export OMARCHY_PATH="$HOME/.local/share/omarchy"
+export PATH="$OMARCHY_PATH/bin:$PATH:$HOME/.local/bin"
+
+# macOS/Homebrew fallbacks
+[[ -d /opt/homebrew/bin ]] && export PATH="/opt/homebrew/bin:$PATH"
+[[ -d /usr/local/bin ]] && export PATH="/usr/local/bin:$PATH"
+
+# Optional local secrets. Keep values out of the repo.
+if [[ -f "$HOME/.credentials/.env" ]]; then
+  setopt allexport
+  source "$HOME/.credentials/.env"
+  unsetopt allexport
+fi
+
+# Make common secret env vars available to GUI apps on macOS when present.
+if [[ "$OSTYPE" == darwin* ]] && command -v launchctl >/dev/null 2>&1; then
+  typeset -a gui_env_vars=(
+    ANTHROPIC_API_KEY
+    ANTHROPIC_AUTH_TOKEN
+    OPENAI_API_KEY
+    OPENROUTER_API_KEY
+    GLM_API_KEY
+    MINIMAX_API_KEY
+    GITHUB_PERSONAL_ACCESS_TOKEN
+  )
+  for var_name in $gui_env_vars; do
+    if [[ -n "${(P)var_name}" ]]; then
+      launchctl setenv "$var_name" "${(P)var_name}" >/dev/null 2>&1 || true
+    fi
+  done
+fi

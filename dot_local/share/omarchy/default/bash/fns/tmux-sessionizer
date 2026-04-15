@@ -1,0 +1,6 @@
+# Launch ThePrimeagen tmux-sessionizer from the interactive Bash prompt.
+__omarchy_tmux_sessionizer_readline() {
+  READLINE_LINE=""
+  READLINE_POINT=0
+  tmux-sessionizer
+}

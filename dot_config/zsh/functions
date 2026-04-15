@@ -1,0 +1,3 @@
+for f in "$HOME"/.config/zsh/fns/*; do
+  [[ -f "$f" ]] && source "$f"
+done

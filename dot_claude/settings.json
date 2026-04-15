@@ -1,0 +1,27 @@
+{
+  "env": {
+    "ANTHROPIC_BASE_URL": "https://api.z.ai/api/anthropic",
+    "API_TIMEOUT_MS": "3000000",
+    "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL": "GLM-5.1"
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "bash \"$HOME/.claude/plugins/marketplaces/caveman/hooks/caveman-statusline.sh\""
+  },
+  "enabledPlugins": {
+    "caveman@caveman": true
+  },
+  "extraKnownMarketplaces": {
+    "caveman": {
+      "source": {
+        "source": "github",
+        "repo": "JuliusBrussee/caveman"
+      }
+    }
+  },
+  "effortLevel": "high",
+  "advisorModel": "opus",
+  "skipDangerousModePermissionPrompt": true,
+  "model": "opus[1m]"
+}
