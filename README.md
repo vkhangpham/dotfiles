@@ -25,7 +25,8 @@ This repo uses `chezmoi`-style naming:
 - Git config under `dot_config/git/`
 - Starship under `dot_config/starship.toml`
 - Ghostty under `dot_config/ghostty/config`
-- tmux-sessionizer under `dot_config/tmux-sessionizer/`
+- tmux-sessionizer config under `dot_config/tmux-sessionizer/`
+- custom tmux-sessionizer executable under `dot_local/bin/tmux-sessionizer`
 - Hermes config under `dot_hermes/config.yaml`
 
 ### macOS
@@ -67,6 +68,7 @@ Use this repo as the source for:
 - `~/.config/starship.toml`
 - `~/.config/ghostty/config`
 - `~/.config/tmux-sessionizer/tmux-sessionizer.conf`
+- `~/.local/bin/tmux-sessionizer`
 - `~/.hermes/config.yaml`
 
 After applying shell changes, restart shell or source the relevant Omarchy Bash loader.

@@ -1,0 +1,211 @@
+#!/usr/bin/env bash
+
+# Session commands - customize these to your most important projects
+SESSION_COMMANDS=(
+  "/Users/kylepham/servers" # -s 0: Most important project
+  "$HOME/Study"             # -s 2: Third project
+  "$HOME/Code"              # -s 3: Fourth project
+  "$HOME/research"
+)
+
+session_idx=""
+user_selected=""
+set_mode=false
+
+# Parse arguments
+while [[ "$#" -gt 0 ]]; do
+  case "$1" in
+  -s | --session)
+    session_idx="$2"
+    if [[ -z $session_idx ]]; then
+      echo "Session index cannot be empty"
+      exit 1
+    fi
+    if [[ "$session_idx" -lt 0 || "$session_idx" -ge "${#SESSION_COMMANDS[@]}" ]]; then
+      echo "Error: Invalid index. Please provide an index between 0 and $((${#SESSION_COMMANDS[@]} - 1))."
+      exit 1
+    fi
+    shift
+    ;;
+  --set)
+    set_mode=true
+    session_idx="$2"
+    if [[ -z $session_idx ]]; then
+      echo "Session index cannot be empty for --set"
+      exit 1
+    fi
+    shift
+    ;;
+  --list)
+    echo "Current session commands:"
+    for i in "${!SESSION_COMMANDS[@]}"; do
+      echo "  -s $i: ${SESSION_COMMANDS[$i]}"
+    done
+    exit 0
+    ;;
+  -h | --help)
+    echo "Usage: tmux-sessionizer [OPTIONS] [DIRECTORY]"
+    echo "Options:"
+    echo "  -s, --session <n>     Jump to predefined session (0-$((${#SESSION_COMMANDS[@]} - 1)))"
+    echo "  --set <n> <path>      Set session command n to path"
+    echo "  --list                List current session commands"
+    echo "  -h, --help            Show this help"
+    echo ""
+    echo "Current session commands:"
+    for i in "${!SESSION_COMMANDS[@]}"; do
+      echo "  -s $i: ${SESSION_COMMANDS[$i]}"
+    done
+    exit 0
+    ;;
+  *)
+    if [[ $set_mode == true && -z $user_selected ]]; then
+      user_selected="$1"
+    elif [[ -z $user_selected ]]; then
+      user_selected="$1"
+    fi
+    ;;
+  esac
+  shift
+done
+
+# Handle --set mode
+if [[ $set_mode == true ]]; then
+  if [[ -z $user_selected ]]; then
+    echo "Error: --set requires a path"
+    exit 1
+  fi
+  if [[ "$session_idx" -lt 0 || "$session_idx" -ge "${#SESSION_COMMANDS[@]}" ]]; then
+    echo "Error: Invalid index. Please provide an index between 0 and $((${#SESSION_COMMANDS[@]} - 1))."
+    exit 1
+  fi
+
+  # Update the script file using sed instead of awk
+  script_path="$0"
+  temp_file=$(mktemp)
+
+  # Expand tilde in the new path
+  expanded_path="${user_selected/#\~/$HOME}"
+  if [[ ! -d "$expanded_path" ]]; then
+    echo "Warning: Directory '$expanded_path' does not exist"
+    read -p "Continue anyway? (y/n): " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+      exit 1
+    fi
+  fi
+
+  # Use sed to replace the specific line
+  sed_pattern="s|^[[:space:]]*\"[^\"]*\"[[:space:]]*# -s ${session_idx}:|    \"${user_selected}\"           # -s ${session_idx}:|"
+  sed "$sed_pattern" "$script_path" >"$temp_file"
+
+  mv "$temp_file" "$script_path"
+  chmod +x "$script_path"
+
+  echo "Updated session command $session_idx to: $user_selected"
+  exit 0
+fi
+
+is_project_dir() {
+  local dir="$1"
+  local entry
+  local marker
+  local -a markers=(
+    ".git"
+    ".hg"
+    ".svn"
+    ".jj"
+    "package.json"
+    "pyproject.toml"
+    "Cargo.toml"
+    "go.mod"
+    "Makefile"
+    "flake.nix"
+    "pom.xml"
+  )
+
+  for marker in "${markers[@]}"; do
+    [[ -e "$dir/$marker" ]] && return 0
+  done
+
+  for entry in "$dir"/*; do
+    [[ -e "$entry" ]] || continue
+    [[ -f "$entry" || -L "$entry" ]] && return 0
+  done
+
+  return 1
+}
+
+scan_dirs() {
+  local root="$1"
+  local depth="$2"
+  local child
+  local base
+
+  (( depth > 0 )) || return 0
+
+  for child in "$root"/*; do
+    [[ -d "$child" ]] || continue
+    base=$(basename "$child")
+
+    case "$base" in
+      .*|__pycache__|node_modules)
+        continue
+        ;;
+    esac
+
+    printf '%s\n' "$child"
+
+    if (( depth > 1 )) && ! is_project_dir "$child"; then
+      scan_dirs "$child" $((depth - 1))
+    fi
+  done
+}
+
+list_search_dirs() {
+  local root
+  local -a roots=(
+    "$HOME/Code"
+    "$HOME/Study"
+    "$HOME/research"
+  )
+
+  for root in "${roots[@]}"; do
+    [[ -d "$root" ]] || continue
+    scan_dirs "$root" 2
+  done
+}
+
+# Handle session command
+if [[ ! -z $session_idx ]]; then
+  selected="${SESSION_COMMANDS[$session_idx]}"
+elif [[ ! -z $user_selected ]]; then
+  selected="$user_selected"
+else
+  # Standard fzf mode
+  selected=$(list_search_dirs | awk '!seen[$0]++' | fzf)
+fi
+
+if [[ -z $selected ]]; then
+  exit 0
+fi
+
+# Expand tilde to home directory
+selected="${selected/#\~/$HOME}"
+
+selected_name=$(basename "$selected" | tr . _)
+tmux_running=$(pgrep tmux)
+
+if [[ -z $TMUX ]] && [[ -z $tmux_running ]]; then
+  tmux new-session -s "$selected_name" -c "$selected"
+  exit 0
+fi
+
+if ! tmux has-session -t="$selected_name" 2>/dev/null; then
+  tmux new-session -ds "$selected_name" -c "$selected"
+fi
+
+if [[ -z $TMUX ]]; then
+  tmux attach-session -t "$selected_name"
+else
+  tmux switch-client -t "$selected_name"
+fi
