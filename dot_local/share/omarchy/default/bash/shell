@@ -13,4 +13,6 @@ fi
 set +h
 
 # Syntax highlighter ble.sh
-source -- ~/.local/share/blesh/ble.sh
+if [[ $- == *i* && ${TERM:-} != "dumb" && -f ~/.local/share/blesh/ble.sh ]]; then
+  source -- ~/.local/share/blesh/ble.sh
+fi

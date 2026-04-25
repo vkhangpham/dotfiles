@@ -1,0 +1,44 @@
+#!/bin/bash
+
+# Re-apply this dotfiles repo after Omarchy updates.
+# Omarchy itself runs this file from ~/.config/omarchy/hooks/post-update.
+
+set -euo pipefail
+
+DOTFILES_DIR="${DOTFILES_DIR:-$HOME/Servers/dotfiles-review}"
+
+if [[ ! -d $DOTFILES_DIR ]]; then
+  exit 0
+fi
+
+copy_file() {
+  local src=$1
+  local dst=$2
+
+  [[ -f $src ]] || return 0
+  mkdir -p "$(dirname "$dst")"
+  cp -a "$src" "$dst"
+}
+
+copy_tree() {
+  local src=$1
+  local dst=$2
+
+  [[ -d $src ]] || return 0
+  mkdir -p "$dst"
+  cp -a "$src/." "$dst/"
+}
+
+# Omarchy updates can reset these because they live inside the Omarchy git tree.
+copy_tree "$DOTFILES_DIR/dot_local/share/omarchy/default/bash" "$HOME/.local/share/omarchy/default/bash"
+
+# User configs that Omarchy migrations/refreshes may touch.
+copy_file "$DOTFILES_DIR/dot_config/starship.toml" "$HOME/.config/starship.toml"
+copy_file "$DOTFILES_DIR/dot_config/ghostty/config" "$HOME/.config/ghostty/config"
+copy_tree "$DOTFILES_DIR/dot_config/git" "$HOME/.config/git"
+copy_tree "$DOTFILES_DIR/dot_config/tmux" "$HOME/.config/tmux"
+copy_tree "$DOTFILES_DIR/dot_config/tmux-sessionizer" "$HOME/.config/tmux-sessionizer"
+copy_tree "$DOTFILES_DIR/dot_config/hypr" "$HOME/.config/hypr"
+copy_tree "$DOTFILES_DIR/dot_config/waybar" "$HOME/.config/waybar"
+copy_tree "$DOTFILES_DIR/dot_config/walker" "$HOME/.config/walker"
+copy_file "$DOTFILES_DIR/dot_local/bin/tmux-sessionizer" "$HOME/.local/bin/tmux-sessionizer"

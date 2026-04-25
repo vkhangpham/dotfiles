@@ -27,6 +27,8 @@ This repo uses `chezmoi`-style naming:
 - Ghostty under `dot_config/ghostty/config`
 - tmux-sessionizer config under `dot_config/tmux-sessionizer/`
 - custom tmux-sessionizer executable under `dot_local/bin/tmux-sessionizer`
+- desktop config under `dot_config/hypr/`, `dot_config/waybar/`, and `dot_config/walker/`
+- Omarchy post-update reapply hook under `dot_config/omarchy/hooks/post-update`
 - Hermes config under `dot_hermes/config.yaml`
 
 ### macOS
@@ -54,6 +56,7 @@ This repo uses `chezmoi`-style naming:
 
 ### Scratch / machine-specific leftovers
 - temporary Neovim scratch files like `test.qmd`
+- Omarchy-generated backup files like `*.bak.*`
 - hashed plugin-cache paths
 - old tmux stack files that were replaced by XDG config
 
@@ -69,9 +72,13 @@ Use this repo as the source for:
 - `~/.config/ghostty/config`
 - `~/.config/tmux-sessionizer/tmux-sessionizer.conf`
 - `~/.local/bin/tmux-sessionizer`
+- `~/.config/hypr/*`
+- `~/.config/waybar/*`
+- `~/.config/walker/*`
+- `~/.config/omarchy/hooks/post-update`
 - `~/.hermes/config.yaml`
 
-After applying shell changes, restart shell or source the relevant Omarchy Bash loader.
+After applying shell changes, restart shell or source the relevant Omarchy Bash loader. The post-update hook re-applies the tracked Omarchy Bash and desktop configs after future `omarchy-update` runs, because Omarchy's own update pulls/reset files inside `~/.local/share/omarchy`.
 
 ### On macOS
 Use the split zsh config:
