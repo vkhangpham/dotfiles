@@ -1,14 +1,28 @@
 local function pick_backend()
-  local env = vim.env
-  local in_tmux = env.TMUX and env.TMUX ~= ""
-  local in_ghostty = env.GHOSTTY_RESOURCES_DIR and env.GHOSTTY_RESOURCES_DIR ~= ""
+  local term = (vim.env.TERM or ""):lower()
+  local term_program = (vim.env.TERM_PROGRAM or ""):lower()
+  local tmux_client = ""
+
+  if vim.env.TMUX then
+    local ok, result = pcall(vim.fn.system, { "tmux", "display-message", "-p", "#{client_termname} #{client_termtype}" })
+    if ok and vim.v.shell_error == 0 then
+      tmux_client = vim.trim(result):lower()
+    end
+  end
+
+  local is_ghostty = term:find("ghostty", 1, true) ~= nil
+    or term_program:find("ghostty", 1, true) ~= nil
+    or tmux_client:find("ghostty", 1, true) ~= nil
+  local is_kitty = term:find("kitty", 1, true) ~= nil
+    or term_program:find("kitty", 1, true) ~= nil
+    or tmux_client:find("kitty", 1, true) ~= nil
   local has_ueberzugpp = vim.fn.executable("ueberzugpp") == 1
 
-  if in_ghostty then
+  if is_ghostty or is_kitty then
     return "kitty"
   end
 
-  if has_ueberzugpp and in_tmux then
+  if has_ueberzugpp and vim.env.TMUX then
     return "ueberzug"
   end
 
@@ -17,9 +31,25 @@ end
 
 return {
   "3rd/image.nvim",
-  opts = {
-    backend = pick_backend(),
-    processor = "magick_cli",
-  },
+  ft = { "markdown", "quarto" },
   dependencies = { "nvim-lua/plenary.nvim" },
+  opts = function()
+    return {
+      backend = pick_backend(),
+      processor = "magick_cli",
+      integrations = {
+        markdown = {
+          enabled = false,
+        },
+      },
+      max_width = 100,
+      max_height = 12,
+      max_width_window_percentage = math.huge,
+      max_height_window_percentage = math.huge,
+      window_overlap_clear_enabled = true,
+      window_overlap_clear_ft_ignore = { "cmp_menu", "cmp_docs", "snacks_notif", "scrollview", "scrollview_sign" },
+      editor_only_render_when_focused = false,
+      tmux_show_only_in_active_window = false,
+    }
+  end,
 }
