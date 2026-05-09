@@ -1,0 +1,10 @@
+# Hermes: sync config only; keep secrets and runtime state local
+dot_hermes/.env
+dot_hermes/auth.json
+dot_hermes/state.db*
+dot_hermes/logs/
+dot_hermes/sessions/
+dot_hermes/checkpoints/
+dot_hermes/cron/
+dot_hermes/.hermes_history
+dot_hermes/.update_check
