@@ -1,0 +1,238 @@
+{
+  "title": "Lofree Flow 2 touch bar as smooth scroll wheel",
+  "rules": [
+    {
+      "description": "Lofree Flow 2 volume/brightness touch bar -> smooth reversed vertical scroll",
+      "manipulators": [
+        {
+          "type": "basic",
+          "from": {
+            "consumer_key_code": 233,
+            "modifiers": {
+              "optional": [
+                "any"
+              ]
+            }
+          },
+          "to": [
+            {
+              "shell_command": "/Users/khang/.local/bin/karabiner-scroll-helper -72 7 3500"
+            }
+          ],
+          "conditions": [
+            {
+              "type": "device_if",
+              "identifiers": [
+                {
+                  "vendor_id": 14477,
+                  "product_id": 1
+                },
+                {
+                  "vendor_id": 14477,
+                  "product_id": 2
+                },
+                {
+                  "vendor_id": 14477,
+                  "product_id": 3
+                },
+                {
+                  "vendor_id": 14477
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "basic",
+          "from": {
+            "consumer_key_code": 234,
+            "modifiers": {
+              "optional": [
+                "any"
+              ]
+            }
+          },
+          "to": [
+            {
+              "shell_command": "/Users/khang/.local/bin/karabiner-scroll-helper 72 7 3500"
+            }
+          ],
+          "conditions": [
+            {
+              "type": "device_if",
+              "identifiers": [
+                {
+                  "vendor_id": 14477,
+                  "product_id": 1
+                },
+                {
+                  "vendor_id": 14477,
+                  "product_id": 2
+                },
+                {
+                  "vendor_id": 14477,
+                  "product_id": 3
+                },
+                {
+                  "vendor_id": 14477
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "basic",
+          "from": {
+            "consumer_key_code": "volume_increment",
+            "modifiers": {
+              "optional": [
+                "any"
+              ]
+            }
+          },
+          "to": [
+            {
+              "shell_command": "/Users/khang/.local/bin/karabiner-scroll-helper -72 7 3500"
+            }
+          ],
+          "conditions": [
+            {
+              "type": "device_if",
+              "identifiers": [
+                {
+                  "vendor_id": 14477,
+                  "product_id": 1
+                },
+                {
+                  "vendor_id": 14477,
+                  "product_id": 2
+                },
+                {
+                  "vendor_id": 14477,
+                  "product_id": 3
+                },
+                {
+                  "vendor_id": 14477
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "basic",
+          "from": {
+            "consumer_key_code": "volume_decrement",
+            "modifiers": {
+              "optional": [
+                "any"
+              ]
+            }
+          },
+          "to": [
+            {
+              "shell_command": "/Users/khang/.local/bin/karabiner-scroll-helper 72 7 3500"
+            }
+          ],
+          "conditions": [
+            {
+              "type": "device_if",
+              "identifiers": [
+                {
+                  "vendor_id": 14477,
+                  "product_id": 1
+                },
+                {
+                  "vendor_id": 14477,
+                  "product_id": 2
+                },
+                {
+                  "vendor_id": 14477,
+                  "product_id": 3
+                },
+                {
+                  "vendor_id": 14477
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "basic",
+          "from": {
+            "consumer_key_code": "display_brightness_increment",
+            "modifiers": {
+              "optional": [
+                "any"
+              ]
+            }
+          },
+          "to": [
+            {
+              "shell_command": "/Users/khang/.local/bin/karabiner-scroll-helper -72 7 3500"
+            }
+          ],
+          "conditions": [
+            {
+              "type": "device_if",
+              "identifiers": [
+                {
+                  "vendor_id": 14477,
+                  "product_id": 1
+                },
+                {
+                  "vendor_id": 14477,
+                  "product_id": 2
+                },
+                {
+                  "vendor_id": 14477,
+                  "product_id": 3
+                },
+                {
+                  "vendor_id": 14477
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "basic",
+          "from": {
+            "consumer_key_code": "display_brightness_decrement",
+            "modifiers": {
+              "optional": [
+                "any"
+              ]
+            }
+          },
+          "to": [
+            {
+              "shell_command": "/Users/khang/.local/bin/karabiner-scroll-helper 72 7 3500"
+            }
+          ],
+          "conditions": [
+            {
+              "type": "device_if",
+              "identifiers": [
+                {
+                  "vendor_id": 14477,
+                  "product_id": 1
+                },
+                {
+                  "vendor_id": 14477,
+                  "product_id": 2
+                },
+                {
+                  "vendor_id": 14477,
+                  "product_id": 3
+                },
+                {
+                  "vendor_id": 14477
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -8,3 +8,6 @@ dot_hermes/checkpoints/
 dot_hermes/cron/
 dot_hermes/.hermes_history
 dot_hermes/.update_check
+
+# Karabiner generates timestamped copies whenever mappings change.
+dot_config/karabiner/automatic_backups/

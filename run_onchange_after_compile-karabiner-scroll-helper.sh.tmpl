@@ -1,0 +1,20 @@
+#!/bin/sh
+# Source checksum: {{ include "dot_local/src/karabiner-scroll-helper/main.swift" | sha256sum }}
+set -eu
+
+{{ if eq .chezmoi.os "darwin" -}}
+src="$HOME/.local/src/karabiner-scroll-helper/main.swift"
+dest="$HOME/.local/bin/karabiner-scroll-helper"
+
+if [ ! -x /usr/bin/swiftc ]; then
+  printf '%s\n' "karabiner-scroll-helper: /usr/bin/swiftc is unavailable" >&2
+  exit 1
+fi
+
+mkdir -p "$(dirname "$dest")"
+/usr/bin/swiftc -O "$src" -o "$dest"
+chmod 755 "$dest"
+/usr/bin/codesign --force --sign - "$dest" >/dev/null 2>&1 || true
+{{ else -}}
+exit 0
+{{ end -}}

@@ -1,7 +1,7 @@
 local uv = vim.uv or vim.loop
 
 local function kernel_specs()
-  local host_python = vim.g.python3_host_prog or vim.fn.expand("~/.virtualenvs/neovim/bin/python")
+  local host_python = vim.g.python3_host_prog or vim.fn.expand("~/.nvim/bin/python")
   local output = vim.fn.system({ host_python, "-m", "jupyter", "kernelspec", "list", "--json" })
   if vim.v.shell_error ~= 0 then
     return {}
@@ -115,7 +115,7 @@ return {
     build = ":UpdateRemotePlugins",
     lazy = false,
     init = function()
-      vim.g.python3_host_prog = vim.fn.expand("~/.virtualenvs/neovim/bin/python")
+      vim.g.python3_host_prog = vim.fn.expand("~/.nvim/bin/python")
       vim.g.molten_auto_open_output = false
       vim.g.molten_auto_init_behavior = "init"
       vim.g.molten_wrap_output = true
@@ -137,7 +137,13 @@ return {
       { "<localleader>oh", ":MoltenHideOutput<CR>", desc = "Molten hide output", silent = true, mode = "n" },
       { "<localleader>md", ":MoltenDelete<CR>", desc = "Molten delete cell", silent = true, mode = "n" },
       { "<localleader>rl", ":MoltenEvaluateLine<CR>", desc = "Molten evaluate line", silent = true, mode = "n" },
-      { "<localleader>r", ":<C-u>MoltenEvaluateVisual<CR>gv", desc = "Molten evaluate selection", silent = true, mode = "v" },
+      {
+        "<localleader>r",
+        ":<C-u>MoltenEvaluateVisual<CR>gv",
+        desc = "Molten evaluate selection",
+        silent = true,
+        mode = "v",
+      },
     },
   },
 }

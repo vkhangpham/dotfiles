@@ -1,0 +1,1542 @@
+{
+    "profiles": [
+        {
+            "complex_modifications": {
+                "rules": [
+                    {
+                        "description": "Lofree Flow 2 volume/brightness touch bar -> smooth reversed vertical scroll",
+                        "manipulators": [
+                            {
+                                "conditions": [
+                                    {
+                                        "identifiers": [
+                                            {
+                                                "product_id": 1,
+                                                "vendor_id": 14477
+                                            },
+                                            {
+                                                "product_id": 2,
+                                                "vendor_id": 14477
+                                            },
+                                            {
+                                                "product_id": 3,
+                                                "vendor_id": 14477
+                                            },
+                                            { "vendor_id": 14477 }
+                                        ],
+                                        "type": "device_if"
+                                    }
+                                ],
+                                "from": {
+                                    "consumer_key_code": 233,
+                                    "modifiers": { "optional": ["any"] }
+                                },
+                                "to": [{ "shell_command": "/Users/khang/.local/bin/karabiner-scroll-helper -72 7 3500" }],
+                                "type": "basic"
+                            },
+                            {
+                                "conditions": [
+                                    {
+                                        "identifiers": [
+                                            {
+                                                "product_id": 1,
+                                                "vendor_id": 14477
+                                            },
+                                            {
+                                                "product_id": 2,
+                                                "vendor_id": 14477
+                                            },
+                                            {
+                                                "product_id": 3,
+                                                "vendor_id": 14477
+                                            },
+                                            { "vendor_id": 14477 }
+                                        ],
+                                        "type": "device_if"
+                                    }
+                                ],
+                                "from": {
+                                    "consumer_key_code": 234,
+                                    "modifiers": { "optional": ["any"] }
+                                },
+                                "to": [{ "shell_command": "/Users/khang/.local/bin/karabiner-scroll-helper 72 7 3500" }],
+                                "type": "basic"
+                            },
+                            {
+                                "conditions": [
+                                    {
+                                        "identifiers": [
+                                            {
+                                                "product_id": 1,
+                                                "vendor_id": 14477
+                                            },
+                                            {
+                                                "product_id": 2,
+                                                "vendor_id": 14477
+                                            },
+                                            {
+                                                "product_id": 3,
+                                                "vendor_id": 14477
+                                            },
+                                            { "vendor_id": 14477 }
+                                        ],
+                                        "type": "device_if"
+                                    }
+                                ],
+                                "from": {
+                                    "consumer_key_code": "volume_increment",
+                                    "modifiers": { "optional": ["any"] }
+                                },
+                                "to": [{ "shell_command": "/Users/khang/.local/bin/karabiner-scroll-helper -72 7 3500" }],
+                                "type": "basic"
+                            },
+                            {
+                                "conditions": [
+                                    {
+                                        "identifiers": [
+                                            {
+                                                "product_id": 1,
+                                                "vendor_id": 14477
+                                            },
+                                            {
+                                                "product_id": 2,
+                                                "vendor_id": 14477
+                                            },
+                                            {
+                                                "product_id": 3,
+                                                "vendor_id": 14477
+                                            },
+                                            { "vendor_id": 14477 }
+                                        ],
+                                        "type": "device_if"
+                                    }
+                                ],
+                                "from": {
+                                    "consumer_key_code": "volume_decrement",
+                                    "modifiers": { "optional": ["any"] }
+                                },
+                                "to": [{ "shell_command": "/Users/khang/.local/bin/karabiner-scroll-helper 72 7 3500" }],
+                                "type": "basic"
+                            },
+                            {
+                                "conditions": [
+                                    {
+                                        "identifiers": [
+                                            {
+                                                "product_id": 1,
+                                                "vendor_id": 14477
+                                            },
+                                            {
+                                                "product_id": 2,
+                                                "vendor_id": 14477
+                                            },
+                                            {
+                                                "product_id": 3,
+                                                "vendor_id": 14477
+                                            },
+                                            { "vendor_id": 14477 }
+                                        ],
+                                        "type": "device_if"
+                                    }
+                                ],
+                                "from": {
+                                    "consumer_key_code": "display_brightness_increment",
+                                    "modifiers": { "optional": ["any"] }
+                                },
+                                "to": [{ "shell_command": "/Users/khang/.local/bin/karabiner-scroll-helper -72 7 3500" }],
+                                "type": "basic"
+                            },
+                            {
+                                "conditions": [
+                                    {
+                                        "identifiers": [
+                                            {
+                                                "product_id": 1,
+                                                "vendor_id": 14477
+                                            },
+                                            {
+                                                "product_id": 2,
+                                                "vendor_id": 14477
+                                            },
+                                            {
+                                                "product_id": 3,
+                                                "vendor_id": 14477
+                                            },
+                                            { "vendor_id": 14477 }
+                                        ],
+                                        "type": "device_if"
+                                    }
+                                ],
+                                "from": {
+                                    "consumer_key_code": "display_brightness_decrement",
+                                    "modifiers": { "optional": ["any"] }
+                                },
+                                "to": [{ "shell_command": "/Users/khang/.local/bin/karabiner-scroll-helper 72 7 3500" }],
+                                "type": "basic"
+                            }
+                        ]
+                    },
+                    {
+                        "description": "Caps Lock to Escape; Escape to ` / ~; Command+Escape to Command+`",
+                        "manipulators": [
+                            {
+                                "from": { "key_code": "caps_lock" },
+                                "to": [{ "key_code": "escape" }],
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "escape",
+                                    "modifiers": { "mandatory": ["command", "shift"] }
+                                },
+                                "to": [
+                                    {
+                                        "key_code": "grave_accent_and_tilde",
+                                        "modifiers": ["left_command", "left_shift"]
+                                    }
+                                ],
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "escape",
+                                    "modifiers": { "mandatory": ["command"] }
+                                },
+                                "to": [
+                                    {
+                                        "key_code": "grave_accent_and_tilde",
+                                        "modifiers": ["left_command"]
+                                    }
+                                ],
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "escape",
+                                    "modifiers": { "mandatory": ["shift"] }
+                                },
+                                "to": [
+                                    {
+                                        "key_code": "grave_accent_and_tilde",
+                                        "modifiers": ["left_shift"]
+                                    }
+                                ],
+                                "type": "basic"
+                            },
+                            {
+                                "from": { "key_code": "escape" },
+                                "to": [{ "key_code": "grave_accent_and_tilde" }],
+                                "type": "basic"
+                            }
+                        ]
+                    },
+                    {
+                        "description": "Command+Shift+S to capture selected area to clipboard",
+                        "manipulators": [
+                            {
+                                "from": {
+                                    "key_code": "s",
+                                    "modifiers": {
+                                        "mandatory": ["command", "shift"],
+                                        "optional": ["caps_lock"]
+                                    }
+                                },
+                                "to": [
+                                    {
+                                        "key_code": "4",
+                                        "modifiers": ["left_command", "left_control", "left_shift"]
+                                    }
+                                ],
+                                "type": "basic"
+                            },
+                            {
+                                "conditions": [
+                                    {
+                                        "bundle_identifiers": [
+                                            "^com\\.mitchellh\\.ghostty$",
+                                            "^com\\.apple\\.Terminal$",
+                                            "^com\\.googlecode\\.iterm2$",
+                                            "^org\\.alacritty$",
+                                            "^net\\.kovidgoyal\\.kitty$",
+                                            "^com\\.github\\.wez\\.wezterm$",
+                                            "^dev\\.warp\\.Warp-Stable$",
+                                            "^dev\\.warp\\.Warp-Preview$",
+                                            "^dev\\.warp\\.Warp-Dev$",
+                                            "^com\\.warpdotdev\\.Warp$",
+                                            "^com\\.raphamorim\\.rio$",
+                                            "^org\\.tabby$",
+                                            "^co\\.zeit\\.hyper$"
+                                        ],
+                                        "type": "frontmost_application_if"
+                                    }
+                                ],
+                                "from": {
+                                    "key_code": "s",
+                                    "modifiers": {
+                                        "mandatory": ["control", "shift"],
+                                        "optional": ["caps_lock"]
+                                    }
+                                },
+                                "to": [
+                                    {
+                                        "key_code": "4",
+                                        "modifiers": ["left_command", "left_control", "left_shift"]
+                                    }
+                                ],
+                                "type": "basic"
+                            }
+                        ]
+                    },
+                    {
+                        "description": "Keep terminal Cmd+C/V as copy/paste and Ctrl+C/V as control signals",
+                        "manipulators": [
+                            {
+                                "conditions": [
+                                    {
+                                        "bundle_identifiers": [
+                                            "^com\\.mitchellh\\.ghostty$",
+                                            "^com\\.apple\\.Terminal$",
+                                            "^com\\.googlecode\\.iterm2$",
+                                            "^org\\.alacritty$",
+                                            "^net\\.kovidgoyal\\.kitty$",
+                                            "^com\\.github\\.wez\\.wezterm$",
+                                            "^dev\\.warp\\.Warp-Stable$",
+                                            "^dev\\.warp\\.Warp-Preview$",
+                                            "^dev\\.warp\\.Warp-Dev$",
+                                            "^com\\.warpdotdev\\.Warp$",
+                                            "^com\\.raphamorim\\.rio$",
+                                            "^org\\.tabby$",
+                                            "^co\\.zeit\\.hyper$"
+                                        ],
+                                        "type": "frontmost_application_if"
+                                    },
+                                    {
+                                        "name": "terminal_physical_command_down",
+                                        "type": "variable_if",
+                                        "value": 1
+                                    }
+                                ],
+                                "from": {
+                                    "key_code": "c",
+                                    "modifiers": {
+                                        "mandatory": ["command"],
+                                        "optional": ["caps_lock"]
+                                    }
+                                },
+                                "to": [
+                                    {
+                                        "key_code": "c",
+                                        "modifiers": ["left_command"]
+                                    }
+                                ],
+                                "type": "basic"
+                            },
+                            {
+                                "conditions": [
+                                    {
+                                        "bundle_identifiers": [
+                                            "^com\\.mitchellh\\.ghostty$",
+                                            "^com\\.apple\\.Terminal$",
+                                            "^com\\.googlecode\\.iterm2$",
+                                            "^org\\.alacritty$",
+                                            "^net\\.kovidgoyal\\.kitty$",
+                                            "^com\\.github\\.wez\\.wezterm$",
+                                            "^dev\\.warp\\.Warp-Stable$",
+                                            "^dev\\.warp\\.Warp-Preview$",
+                                            "^dev\\.warp\\.Warp-Dev$",
+                                            "^com\\.warpdotdev\\.Warp$",
+                                            "^com\\.raphamorim\\.rio$",
+                                            "^org\\.tabby$",
+                                            "^co\\.zeit\\.hyper$"
+                                        ],
+                                        "type": "frontmost_application_if"
+                                    },
+                                    {
+                                        "name": "terminal_physical_command_down",
+                                        "type": "variable_if",
+                                        "value": 1
+                                    }
+                                ],
+                                "from": {
+                                    "key_code": "c",
+                                    "modifiers": {
+                                        "mandatory": ["control"],
+                                        "optional": ["caps_lock"]
+                                    }
+                                },
+                                "to": [
+                                    {
+                                        "key_code": "c",
+                                        "modifiers": ["left_command"]
+                                    }
+                                ],
+                                "type": "basic"
+                            },
+                            {
+                                "conditions": [
+                                    {
+                                        "bundle_identifiers": [
+                                            "^com\\.mitchellh\\.ghostty$",
+                                            "^com\\.apple\\.Terminal$",
+                                            "^com\\.googlecode\\.iterm2$",
+                                            "^org\\.alacritty$",
+                                            "^net\\.kovidgoyal\\.kitty$",
+                                            "^com\\.github\\.wez\\.wezterm$",
+                                            "^dev\\.warp\\.Warp-Stable$",
+                                            "^dev\\.warp\\.Warp-Preview$",
+                                            "^dev\\.warp\\.Warp-Dev$",
+                                            "^com\\.warpdotdev\\.Warp$",
+                                            "^com\\.raphamorim\\.rio$",
+                                            "^org\\.tabby$",
+                                            "^co\\.zeit\\.hyper$"
+                                        ],
+                                        "type": "frontmost_application_if"
+                                    },
+                                    {
+                                        "name": "terminal_physical_control_down",
+                                        "type": "variable_if",
+                                        "value": 1
+                                    }
+                                ],
+                                "from": {
+                                    "key_code": "c",
+                                    "modifiers": {
+                                        "mandatory": ["control"],
+                                        "optional": ["caps_lock"]
+                                    }
+                                },
+                                "to": [
+                                    {
+                                        "key_code": "c",
+                                        "modifiers": ["left_control"]
+                                    }
+                                ],
+                                "type": "basic"
+                            },
+                            {
+                                "conditions": [
+                                    {
+                                        "bundle_identifiers": [
+                                            "^com\\.mitchellh\\.ghostty$",
+                                            "^com\\.apple\\.Terminal$",
+                                            "^com\\.googlecode\\.iterm2$",
+                                            "^org\\.alacritty$",
+                                            "^net\\.kovidgoyal\\.kitty$",
+                                            "^com\\.github\\.wez\\.wezterm$",
+                                            "^dev\\.warp\\.Warp-Stable$",
+                                            "^dev\\.warp\\.Warp-Preview$",
+                                            "^dev\\.warp\\.Warp-Dev$",
+                                            "^com\\.warpdotdev\\.Warp$",
+                                            "^com\\.raphamorim\\.rio$",
+                                            "^org\\.tabby$",
+                                            "^co\\.zeit\\.hyper$"
+                                        ],
+                                        "type": "frontmost_application_if"
+                                    },
+                                    {
+                                        "name": "terminal_physical_control_down",
+                                        "type": "variable_if",
+                                        "value": 1
+                                    }
+                                ],
+                                "from": {
+                                    "key_code": "c",
+                                    "modifiers": {
+                                        "mandatory": ["command"],
+                                        "optional": ["caps_lock"]
+                                    }
+                                },
+                                "to": [
+                                    {
+                                        "key_code": "c",
+                                        "modifiers": ["left_control"]
+                                    }
+                                ],
+                                "type": "basic"
+                            },
+                            {
+                                "conditions": [
+                                    {
+                                        "bundle_identifiers": [
+                                            "^com\\.mitchellh\\.ghostty$",
+                                            "^com\\.apple\\.Terminal$",
+                                            "^com\\.googlecode\\.iterm2$",
+                                            "^org\\.alacritty$",
+                                            "^net\\.kovidgoyal\\.kitty$",
+                                            "^com\\.github\\.wez\\.wezterm$",
+                                            "^dev\\.warp\\.Warp-Stable$",
+                                            "^dev\\.warp\\.Warp-Preview$",
+                                            "^dev\\.warp\\.Warp-Dev$",
+                                            "^com\\.warpdotdev\\.Warp$",
+                                            "^com\\.raphamorim\\.rio$",
+                                            "^org\\.tabby$",
+                                            "^co\\.zeit\\.hyper$"
+                                        ],
+                                        "type": "frontmost_application_if"
+                                    },
+                                    {
+                                        "name": "terminal_physical_command_down",
+                                        "type": "variable_if",
+                                        "value": 1
+                                    }
+                                ],
+                                "from": {
+                                    "key_code": "v",
+                                    "modifiers": {
+                                        "mandatory": ["command"],
+                                        "optional": ["caps_lock"]
+                                    }
+                                },
+                                "to": [
+                                    {
+                                        "key_code": "v",
+                                        "modifiers": ["left_command"]
+                                    }
+                                ],
+                                "type": "basic"
+                            },
+                            {
+                                "conditions": [
+                                    {
+                                        "bundle_identifiers": [
+                                            "^com\\.mitchellh\\.ghostty$",
+                                            "^com\\.apple\\.Terminal$",
+                                            "^com\\.googlecode\\.iterm2$",
+                                            "^org\\.alacritty$",
+                                            "^net\\.kovidgoyal\\.kitty$",
+                                            "^com\\.github\\.wez\\.wezterm$",
+                                            "^dev\\.warp\\.Warp-Stable$",
+                                            "^dev\\.warp\\.Warp-Preview$",
+                                            "^dev\\.warp\\.Warp-Dev$",
+                                            "^com\\.warpdotdev\\.Warp$",
+                                            "^com\\.raphamorim\\.rio$",
+                                            "^org\\.tabby$",
+                                            "^co\\.zeit\\.hyper$"
+                                        ],
+                                        "type": "frontmost_application_if"
+                                    },
+                                    {
+                                        "name": "terminal_physical_command_down",
+                                        "type": "variable_if",
+                                        "value": 1
+                                    }
+                                ],
+                                "from": {
+                                    "key_code": "v",
+                                    "modifiers": {
+                                        "mandatory": ["control"],
+                                        "optional": ["caps_lock"]
+                                    }
+                                },
+                                "to": [
+                                    {
+                                        "key_code": "v",
+                                        "modifiers": ["left_command"]
+                                    }
+                                ],
+                                "type": "basic"
+                            },
+                            {
+                                "conditions": [
+                                    {
+                                        "bundle_identifiers": [
+                                            "^com\\.mitchellh\\.ghostty$",
+                                            "^com\\.apple\\.Terminal$",
+                                            "^com\\.googlecode\\.iterm2$",
+                                            "^org\\.alacritty$",
+                                            "^net\\.kovidgoyal\\.kitty$",
+                                            "^com\\.github\\.wez\\.wezterm$",
+                                            "^dev\\.warp\\.Warp-Stable$",
+                                            "^dev\\.warp\\.Warp-Preview$",
+                                            "^dev\\.warp\\.Warp-Dev$",
+                                            "^com\\.warpdotdev\\.Warp$",
+                                            "^com\\.raphamorim\\.rio$",
+                                            "^org\\.tabby$",
+                                            "^co\\.zeit\\.hyper$"
+                                        ],
+                                        "type": "frontmost_application_if"
+                                    },
+                                    {
+                                        "name": "terminal_physical_control_down",
+                                        "type": "variable_if",
+                                        "value": 1
+                                    }
+                                ],
+                                "from": {
+                                    "key_code": "v",
+                                    "modifiers": {
+                                        "mandatory": ["control"],
+                                        "optional": ["caps_lock"]
+                                    }
+                                },
+                                "to": [
+                                    {
+                                        "key_code": "v",
+                                        "modifiers": ["left_control"]
+                                    }
+                                ],
+                                "type": "basic"
+                            },
+                            {
+                                "conditions": [
+                                    {
+                                        "bundle_identifiers": [
+                                            "^com\\.mitchellh\\.ghostty$",
+                                            "^com\\.apple\\.Terminal$",
+                                            "^com\\.googlecode\\.iterm2$",
+                                            "^org\\.alacritty$",
+                                            "^net\\.kovidgoyal\\.kitty$",
+                                            "^com\\.github\\.wez\\.wezterm$",
+                                            "^dev\\.warp\\.Warp-Stable$",
+                                            "^dev\\.warp\\.Warp-Preview$",
+                                            "^dev\\.warp\\.Warp-Dev$",
+                                            "^com\\.warpdotdev\\.Warp$",
+                                            "^com\\.raphamorim\\.rio$",
+                                            "^org\\.tabby$",
+                                            "^co\\.zeit\\.hyper$"
+                                        ],
+                                        "type": "frontmost_application_if"
+                                    },
+                                    {
+                                        "name": "terminal_physical_control_down",
+                                        "type": "variable_if",
+                                        "value": 1
+                                    }
+                                ],
+                                "from": {
+                                    "key_code": "v",
+                                    "modifiers": {
+                                        "mandatory": ["command"],
+                                        "optional": ["caps_lock"]
+                                    }
+                                },
+                                "to": [
+                                    {
+                                        "key_code": "v",
+                                        "modifiers": ["left_control"]
+                                    }
+                                ],
+                                "type": "basic"
+                            }
+                        ]
+                    },
+                    {
+                        "description": "Right Command app switcher (Karabiner RCMD replacement)",
+                        "manipulators": [
+                            {
+                                "from": {
+                                    "key_code": "c",
+                                    "modifiers": {
+                                        "mandatory": ["right_command"],
+                                        "optional": ["shift", "caps_lock"]
+                                    }
+                                },
+                                "to": [{ "software_function": { "open_application": { "bundle_identifier": "com.anthropic.claudefordesktop" } } }],
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "f",
+                                    "modifiers": {
+                                        "mandatory": ["right_command"],
+                                        "optional": ["shift", "caps_lock"]
+                                    }
+                                },
+                                "to": [{ "software_function": { "open_application": { "bundle_identifier": "com.apple.finder" } } }],
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "g",
+                                    "modifiers": {
+                                        "mandatory": ["right_command"],
+                                        "optional": ["shift", "caps_lock"]
+                                    }
+                                },
+                                "to": [{ "software_function": { "open_application": { "bundle_identifier": "com.brave.Browser.app.fmgjjmmmlfnkbppncabfkddbjimcfncm" } } }],
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "h",
+                                    "modifiers": {
+                                        "mandatory": ["right_command"],
+                                        "optional": ["shift", "caps_lock"]
+                                    }
+                                },
+                                "to": [{ "software_function": { "open_application": { "bundle_identifier": "com.nousresearch.hermes" } } }],
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "i",
+                                    "modifiers": {
+                                        "mandatory": ["right_command"],
+                                        "optional": ["shift", "caps_lock"]
+                                    }
+                                },
+                                "to": [{ "software_function": { "open_application": { "bundle_identifier": "com.nousresearch.hermes" } } }],
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "k",
+                                    "modifiers": {
+                                        "mandatory": ["right_command"],
+                                        "optional": ["shift", "caps_lock"]
+                                    }
+                                },
+                                "to": [{ "software_function": { "open_application": { "bundle_identifier": "org.keepassxc.keepassxc" } } }],
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "l",
+                                    "modifiers": {
+                                        "mandatory": ["right_command"],
+                                        "optional": ["shift", "caps_lock"]
+                                    }
+                                },
+                                "to": [{ "software_function": { "open_application": { "bundle_identifier": "com.linear" } } }],
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "m",
+                                    "modifiers": {
+                                        "mandatory": ["right_command"],
+                                        "optional": ["shift", "caps_lock"]
+                                    }
+                                },
+                                "to": [{ "software_function": { "open_application": { "bundle_identifier": "com.mitchellh.ghostty" } } }],
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "n",
+                                    "modifiers": {
+                                        "mandatory": ["right_command"],
+                                        "optional": ["shift", "caps_lock"]
+                                    }
+                                },
+                                "to": [{ "software_function": { "open_application": { "bundle_identifier": "com.apple.Notes" } } }],
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "o",
+                                    "modifiers": {
+                                        "mandatory": ["right_command"],
+                                        "optional": ["shift", "caps_lock"]
+                                    }
+                                },
+                                "to": [{ "software_function": { "open_application": { "bundle_identifier": "md.obsidian" } } }],
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "p",
+                                    "modifiers": {
+                                        "mandatory": ["right_command"],
+                                        "optional": ["shift", "caps_lock"]
+                                    }
+                                },
+                                "to": [{ "software_function": { "open_application": { "bundle_identifier": "com.parallels.desktop.console" } } }],
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "q",
+                                    "modifiers": {
+                                        "mandatory": ["right_command"],
+                                        "optional": ["shift", "caps_lock"]
+                                    }
+                                },
+                                "to": [{ "software_function": { "open_application": { "bundle_identifier": "com.apple.QuickTimePlayerX" } } }],
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "x",
+                                    "modifiers": {
+                                        "mandatory": ["right_command"],
+                                        "optional": ["shift", "caps_lock"]
+                                    }
+                                },
+                                "to": [{ "software_function": { "open_application": { "bundle_identifier": "com.openai.codex" } } }],
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "0",
+                                    "modifiers": {
+                                        "mandatory": ["right_command"],
+                                        "optional": ["shift", "caps_lock"]
+                                    }
+                                },
+                                "to": [{ "software_function": { "open_application": { "bundle_identifier": "com.mitchellh.ghostty" } } }],
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "7",
+                                    "modifiers": {
+                                        "mandatory": ["right_command"],
+                                        "optional": ["shift", "caps_lock"]
+                                    }
+                                },
+                                "to": [{ "software_function": { "open_application": { "bundle_identifier": "com.anthropic.claudefordesktop" } } }],
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "8",
+                                    "modifiers": {
+                                        "mandatory": ["right_command"],
+                                        "optional": ["shift", "caps_lock"]
+                                    }
+                                },
+                                "to": [{ "software_function": { "open_application": { "bundle_identifier": "com.tinyspeck.slackmacgap" } } }],
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "9",
+                                    "modifiers": {
+                                        "mandatory": ["right_command"],
+                                        "optional": ["shift", "caps_lock"]
+                                    }
+                                },
+                                "to": [{ "software_function": { "open_application": { "bundle_identifier": "com.brave.Browser" } } }],
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "a",
+                                    "modifiers": {
+                                        "mandatory": ["right_command"],
+                                        "optional": ["shift", "caps_lock"]
+                                    }
+                                },
+                                "to": [{ "shell_command": "/Users/khang/.local/bin/karabiner-rcmd-switch a" }],
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "b",
+                                    "modifiers": {
+                                        "mandatory": ["right_command"],
+                                        "optional": ["shift", "caps_lock"]
+                                    }
+                                },
+                                "to": [{ "shell_command": "/Users/khang/.local/bin/karabiner-rcmd-switch b" }],
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "d",
+                                    "modifiers": {
+                                        "mandatory": ["right_command"],
+                                        "optional": ["shift", "caps_lock"]
+                                    }
+                                },
+                                "to": [{ "shell_command": "/Users/khang/.local/bin/karabiner-rcmd-switch d" }],
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "e",
+                                    "modifiers": {
+                                        "mandatory": ["right_command"],
+                                        "optional": ["shift", "caps_lock"]
+                                    }
+                                },
+                                "to": [{ "shell_command": "/Users/khang/.local/bin/karabiner-rcmd-switch e" }],
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "j",
+                                    "modifiers": {
+                                        "mandatory": ["right_command"],
+                                        "optional": ["shift", "caps_lock"]
+                                    }
+                                },
+                                "to": [{ "shell_command": "/Users/khang/.local/bin/karabiner-rcmd-switch j" }],
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "r",
+                                    "modifiers": {
+                                        "mandatory": ["right_command"],
+                                        "optional": ["shift", "caps_lock"]
+                                    }
+                                },
+                                "to": [{ "shell_command": "/Users/khang/.local/bin/karabiner-rcmd-switch r" }],
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "s",
+                                    "modifiers": {
+                                        "mandatory": ["right_command"],
+                                        "optional": ["shift", "caps_lock"]
+                                    }
+                                },
+                                "to": [{ "shell_command": "/Users/khang/.local/bin/karabiner-rcmd-switch s" }],
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "t",
+                                    "modifiers": {
+                                        "mandatory": ["right_command"],
+                                        "optional": ["shift", "caps_lock"]
+                                    }
+                                },
+                                "to": [{ "shell_command": "/Users/khang/.local/bin/karabiner-rcmd-switch t" }],
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "u",
+                                    "modifiers": {
+                                        "mandatory": ["right_command"],
+                                        "optional": ["shift", "caps_lock"]
+                                    }
+                                },
+                                "to": [{ "shell_command": "/Users/khang/.local/bin/karabiner-rcmd-switch u" }],
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "v",
+                                    "modifiers": {
+                                        "mandatory": ["right_command"],
+                                        "optional": ["shift", "caps_lock"]
+                                    }
+                                },
+                                "to": [{ "shell_command": "/Users/khang/.local/bin/karabiner-rcmd-switch v" }],
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "w",
+                                    "modifiers": {
+                                        "mandatory": ["right_command"],
+                                        "optional": ["shift", "caps_lock"]
+                                    }
+                                },
+                                "to": [{ "shell_command": "/Users/khang/.local/bin/karabiner-rcmd-switch w" }],
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "y",
+                                    "modifiers": {
+                                        "mandatory": ["right_command"],
+                                        "optional": ["shift", "caps_lock"]
+                                    }
+                                },
+                                "to": [{ "shell_command": "/Users/khang/.local/bin/karabiner-rcmd-switch y" }],
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "z",
+                                    "modifiers": {
+                                        "mandatory": ["right_command"],
+                                        "optional": ["shift", "caps_lock"]
+                                    }
+                                },
+                                "to": [{ "shell_command": "/Users/khang/.local/bin/karabiner-rcmd-switch z" }],
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "1",
+                                    "modifiers": {
+                                        "mandatory": ["right_command"],
+                                        "optional": ["shift", "caps_lock"]
+                                    }
+                                },
+                                "to": [{ "shell_command": "/Users/khang/.local/bin/karabiner-rcmd-switch 1" }],
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "2",
+                                    "modifiers": {
+                                        "mandatory": ["right_command"],
+                                        "optional": ["shift", "caps_lock"]
+                                    }
+                                },
+                                "to": [{ "shell_command": "/Users/khang/.local/bin/karabiner-rcmd-switch 2" }],
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "3",
+                                    "modifiers": {
+                                        "mandatory": ["right_command"],
+                                        "optional": ["shift", "caps_lock"]
+                                    }
+                                },
+                                "to": [{ "shell_command": "/Users/khang/.local/bin/karabiner-rcmd-switch 3" }],
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "4",
+                                    "modifiers": {
+                                        "mandatory": ["right_command"],
+                                        "optional": ["shift", "caps_lock"]
+                                    }
+                                },
+                                "to": [{ "shell_command": "/Users/khang/.local/bin/karabiner-rcmd-switch 4" }],
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "5",
+                                    "modifiers": {
+                                        "mandatory": ["right_command"],
+                                        "optional": ["shift", "caps_lock"]
+                                    }
+                                },
+                                "to": [{ "shell_command": "/Users/khang/.local/bin/karabiner-rcmd-switch 5" }],
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "6",
+                                    "modifiers": {
+                                        "mandatory": ["right_command"],
+                                        "optional": ["shift", "caps_lock"]
+                                    }
+                                },
+                                "to": [{ "shell_command": "/Users/khang/.local/bin/karabiner-rcmd-switch 6" }],
+                                "type": "basic"
+                            }
+                        ]
+                    },
+                    {
+                        "description": "Right Command+Option assign frontmost app (Karabiner RCMD replacement)",
+                        "manipulators": [
+                            {
+                                "from": {
+                                    "key_code": "a",
+                                    "modifiers": {
+                                        "mandatory": ["right_command", "option"],
+                                        "optional": ["shift", "caps_lock"]
+                                    }
+                                },
+                                "to": [{ "shell_command": "/Users/khang/.local/bin/karabiner-rcmd-map --quiet a" }],
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "b",
+                                    "modifiers": {
+                                        "mandatory": ["right_command", "option"],
+                                        "optional": ["shift", "caps_lock"]
+                                    }
+                                },
+                                "to": [{ "shell_command": "/Users/khang/.local/bin/karabiner-rcmd-map --quiet b" }],
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "c",
+                                    "modifiers": {
+                                        "mandatory": ["right_command", "option"],
+                                        "optional": ["shift", "caps_lock"]
+                                    }
+                                },
+                                "to": [{ "shell_command": "/Users/khang/.local/bin/karabiner-rcmd-map --quiet c" }],
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "d",
+                                    "modifiers": {
+                                        "mandatory": ["right_command", "option"],
+                                        "optional": ["shift", "caps_lock"]
+                                    }
+                                },
+                                "to": [{ "shell_command": "/Users/khang/.local/bin/karabiner-rcmd-map --quiet d" }],
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "e",
+                                    "modifiers": {
+                                        "mandatory": ["right_command", "option"],
+                                        "optional": ["shift", "caps_lock"]
+                                    }
+                                },
+                                "to": [{ "shell_command": "/Users/khang/.local/bin/karabiner-rcmd-map --quiet e" }],
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "f",
+                                    "modifiers": {
+                                        "mandatory": ["right_command", "option"],
+                                        "optional": ["shift", "caps_lock"]
+                                    }
+                                },
+                                "to": [{ "shell_command": "/Users/khang/.local/bin/karabiner-rcmd-map --quiet f" }],
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "g",
+                                    "modifiers": {
+                                        "mandatory": ["right_command", "option"],
+                                        "optional": ["shift", "caps_lock"]
+                                    }
+                                },
+                                "to": [{ "shell_command": "/Users/khang/.local/bin/karabiner-rcmd-map --quiet g" }],
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "h",
+                                    "modifiers": {
+                                        "mandatory": ["right_command", "option"],
+                                        "optional": ["shift", "caps_lock"]
+                                    }
+                                },
+                                "to": [{ "shell_command": "/Users/khang/.local/bin/karabiner-rcmd-map --quiet h" }],
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "i",
+                                    "modifiers": {
+                                        "mandatory": ["right_command", "option"],
+                                        "optional": ["shift", "caps_lock"]
+                                    }
+                                },
+                                "to": [{ "shell_command": "/Users/khang/.local/bin/karabiner-rcmd-map --quiet i" }],
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "j",
+                                    "modifiers": {
+                                        "mandatory": ["right_command", "option"],
+                                        "optional": ["shift", "caps_lock"]
+                                    }
+                                },
+                                "to": [{ "shell_command": "/Users/khang/.local/bin/karabiner-rcmd-map --quiet j" }],
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "k",
+                                    "modifiers": {
+                                        "mandatory": ["right_command", "option"],
+                                        "optional": ["shift", "caps_lock"]
+                                    }
+                                },
+                                "to": [{ "shell_command": "/Users/khang/.local/bin/karabiner-rcmd-map --quiet k" }],
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "l",
+                                    "modifiers": {
+                                        "mandatory": ["right_command", "option"],
+                                        "optional": ["shift", "caps_lock"]
+                                    }
+                                },
+                                "to": [{ "shell_command": "/Users/khang/.local/bin/karabiner-rcmd-map --quiet l" }],
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "m",
+                                    "modifiers": {
+                                        "mandatory": ["right_command", "option"],
+                                        "optional": ["shift", "caps_lock"]
+                                    }
+                                },
+                                "to": [{ "shell_command": "/Users/khang/.local/bin/karabiner-rcmd-map --quiet m" }],
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "n",
+                                    "modifiers": {
+                                        "mandatory": ["right_command", "option"],
+                                        "optional": ["shift", "caps_lock"]
+                                    }
+                                },
+                                "to": [{ "shell_command": "/Users/khang/.local/bin/karabiner-rcmd-map --quiet n" }],
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "o",
+                                    "modifiers": {
+                                        "mandatory": ["right_command", "option"],
+                                        "optional": ["shift", "caps_lock"]
+                                    }
+                                },
+                                "to": [{ "shell_command": "/Users/khang/.local/bin/karabiner-rcmd-map --quiet o" }],
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "p",
+                                    "modifiers": {
+                                        "mandatory": ["right_command", "option"],
+                                        "optional": ["shift", "caps_lock"]
+                                    }
+                                },
+                                "to": [{ "shell_command": "/Users/khang/.local/bin/karabiner-rcmd-map --quiet p" }],
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "q",
+                                    "modifiers": {
+                                        "mandatory": ["right_command", "option"],
+                                        "optional": ["shift", "caps_lock"]
+                                    }
+                                },
+                                "to": [{ "shell_command": "/Users/khang/.local/bin/karabiner-rcmd-map --quiet q" }],
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "r",
+                                    "modifiers": {
+                                        "mandatory": ["right_command", "option"],
+                                        "optional": ["shift", "caps_lock"]
+                                    }
+                                },
+                                "to": [{ "shell_command": "/Users/khang/.local/bin/karabiner-rcmd-map --quiet r" }],
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "s",
+                                    "modifiers": {
+                                        "mandatory": ["right_command", "option"],
+                                        "optional": ["shift", "caps_lock"]
+                                    }
+                                },
+                                "to": [{ "shell_command": "/Users/khang/.local/bin/karabiner-rcmd-map --quiet s" }],
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "t",
+                                    "modifiers": {
+                                        "mandatory": ["right_command", "option"],
+                                        "optional": ["shift", "caps_lock"]
+                                    }
+                                },
+                                "to": [{ "shell_command": "/Users/khang/.local/bin/karabiner-rcmd-map --quiet t" }],
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "u",
+                                    "modifiers": {
+                                        "mandatory": ["right_command", "option"],
+                                        "optional": ["shift", "caps_lock"]
+                                    }
+                                },
+                                "to": [{ "shell_command": "/Users/khang/.local/bin/karabiner-rcmd-map --quiet u" }],
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "v",
+                                    "modifiers": {
+                                        "mandatory": ["right_command", "option"],
+                                        "optional": ["shift", "caps_lock"]
+                                    }
+                                },
+                                "to": [{ "shell_command": "/Users/khang/.local/bin/karabiner-rcmd-map --quiet v" }],
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "w",
+                                    "modifiers": {
+                                        "mandatory": ["right_command", "option"],
+                                        "optional": ["shift", "caps_lock"]
+                                    }
+                                },
+                                "to": [{ "shell_command": "/Users/khang/.local/bin/karabiner-rcmd-map --quiet w" }],
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "x",
+                                    "modifiers": {
+                                        "mandatory": ["right_command", "option"],
+                                        "optional": ["shift", "caps_lock"]
+                                    }
+                                },
+                                "to": [{ "shell_command": "/Users/khang/.local/bin/karabiner-rcmd-map --quiet x" }],
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "y",
+                                    "modifiers": {
+                                        "mandatory": ["right_command", "option"],
+                                        "optional": ["shift", "caps_lock"]
+                                    }
+                                },
+                                "to": [{ "shell_command": "/Users/khang/.local/bin/karabiner-rcmd-map --quiet y" }],
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "z",
+                                    "modifiers": {
+                                        "mandatory": ["right_command", "option"],
+                                        "optional": ["shift", "caps_lock"]
+                                    }
+                                },
+                                "to": [{ "shell_command": "/Users/khang/.local/bin/karabiner-rcmd-map --quiet z" }],
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "0",
+                                    "modifiers": {
+                                        "mandatory": ["right_command", "option"],
+                                        "optional": ["shift", "caps_lock"]
+                                    }
+                                },
+                                "to": [{ "shell_command": "/Users/khang/.local/bin/karabiner-rcmd-map --quiet 0" }],
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "1",
+                                    "modifiers": {
+                                        "mandatory": ["right_command", "option"],
+                                        "optional": ["shift", "caps_lock"]
+                                    }
+                                },
+                                "to": [{ "shell_command": "/Users/khang/.local/bin/karabiner-rcmd-map --quiet 1" }],
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "2",
+                                    "modifiers": {
+                                        "mandatory": ["right_command", "option"],
+                                        "optional": ["shift", "caps_lock"]
+                                    }
+                                },
+                                "to": [{ "shell_command": "/Users/khang/.local/bin/karabiner-rcmd-map --quiet 2" }],
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "3",
+                                    "modifiers": {
+                                        "mandatory": ["right_command", "option"],
+                                        "optional": ["shift", "caps_lock"]
+                                    }
+                                },
+                                "to": [{ "shell_command": "/Users/khang/.local/bin/karabiner-rcmd-map --quiet 3" }],
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "4",
+                                    "modifiers": {
+                                        "mandatory": ["right_command", "option"],
+                                        "optional": ["shift", "caps_lock"]
+                                    }
+                                },
+                                "to": [{ "shell_command": "/Users/khang/.local/bin/karabiner-rcmd-map --quiet 4" }],
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "5",
+                                    "modifiers": {
+                                        "mandatory": ["right_command", "option"],
+                                        "optional": ["shift", "caps_lock"]
+                                    }
+                                },
+                                "to": [{ "shell_command": "/Users/khang/.local/bin/karabiner-rcmd-map --quiet 5" }],
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "6",
+                                    "modifiers": {
+                                        "mandatory": ["right_command", "option"],
+                                        "optional": ["shift", "caps_lock"]
+                                    }
+                                },
+                                "to": [{ "shell_command": "/Users/khang/.local/bin/karabiner-rcmd-map --quiet 6" }],
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "7",
+                                    "modifiers": {
+                                        "mandatory": ["right_command", "option"],
+                                        "optional": ["shift", "caps_lock"]
+                                    }
+                                },
+                                "to": [{ "shell_command": "/Users/khang/.local/bin/karabiner-rcmd-map --quiet 7" }],
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "8",
+                                    "modifiers": {
+                                        "mandatory": ["right_command", "option"],
+                                        "optional": ["shift", "caps_lock"]
+                                    }
+                                },
+                                "to": [{ "shell_command": "/Users/khang/.local/bin/karabiner-rcmd-map --quiet 8" }],
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "9",
+                                    "modifiers": {
+                                        "mandatory": ["right_command", "option"],
+                                        "optional": ["shift", "caps_lock"]
+                                    }
+                                },
+                                "to": [{ "shell_command": "/Users/khang/.local/bin/karabiner-rcmd-map --quiet 9" }],
+                                "type": "basic"
+                            }
+                        ]
+                    },
+                    {
+                        "description": "Swap left Command and left Control in terminal emulators",
+                        "manipulators": [
+                            {
+                                "conditions": [
+                                    {
+                                        "bundle_identifiers": [
+                                            "^com\\.mitchellh\\.ghostty$",
+                                            "^com\\.apple\\.Terminal$",
+                                            "^com\\.googlecode\\.iterm2$",
+                                            "^org\\.alacritty$",
+                                            "^net\\.kovidgoyal\\.kitty$",
+                                            "^com\\.github\\.wez\\.wezterm$",
+                                            "^dev\\.warp\\.Warp-Stable$",
+                                            "^dev\\.warp\\.Warp-Preview$",
+                                            "^dev\\.warp\\.Warp-Dev$",
+                                            "^com\\.warpdotdev\\.Warp$",
+                                            "^com\\.raphamorim\\.rio$",
+                                            "^org\\.tabby$",
+                                            "^co\\.zeit\\.hyper$"
+                                        ],
+                                        "type": "frontmost_application_if"
+                                    }
+                                ],
+                                "from": {
+                                    "key_code": "left_command",
+                                    "modifiers": { "optional": ["any"] }
+                                },
+                                "to": [
+                                    {
+                                        "set_variable": {
+                                            "name": "terminal_physical_command_down",
+                                            "value": 1
+                                        }
+                                    },
+                                    {
+                                        "key_code": "left_control",
+                                        "lazy": true
+                                    }
+                                ],
+                                "to_after_key_up": [
+                                    {
+                                        "set_variable": {
+                                            "name": "terminal_physical_command_down",
+                                            "value": 0
+                                        }
+                                    }
+                                ],
+                                "type": "basic"
+                            },
+                            {
+                                "conditions": [
+                                    {
+                                        "bundle_identifiers": [
+                                            "^com\\.mitchellh\\.ghostty$",
+                                            "^com\\.apple\\.Terminal$",
+                                            "^com\\.googlecode\\.iterm2$",
+                                            "^org\\.alacritty$",
+                                            "^net\\.kovidgoyal\\.kitty$",
+                                            "^com\\.github\\.wez\\.wezterm$",
+                                            "^dev\\.warp\\.Warp-Stable$",
+                                            "^dev\\.warp\\.Warp-Preview$",
+                                            "^dev\\.warp\\.Warp-Dev$",
+                                            "^com\\.warpdotdev\\.Warp$",
+                                            "^com\\.raphamorim\\.rio$",
+                                            "^org\\.tabby$",
+                                            "^co\\.zeit\\.hyper$"
+                                        ],
+                                        "type": "frontmost_application_if"
+                                    }
+                                ],
+                                "from": {
+                                    "key_code": "left_control",
+                                    "modifiers": { "optional": ["any"] }
+                                },
+                                "to": [
+                                    {
+                                        "set_variable": {
+                                            "name": "terminal_physical_control_down",
+                                            "value": 1
+                                        }
+                                    },
+                                    {
+                                        "key_code": "left_command",
+                                        "lazy": true
+                                    }
+                                ],
+                                "to_after_key_up": [
+                                    {
+                                        "set_variable": {
+                                            "name": "terminal_physical_control_down",
+                                            "value": 0
+                                        }
+                                    }
+                                ],
+                                "type": "basic"
+                            }
+                        ]
+                    }
+                ]
+            },
+            "devices": [
+                {
+                    "identifiers": {
+                        "is_keyboard": true,
+                        "is_pointing_device": true,
+                        "product_id": 1,
+                        "vendor_id": 14477
+                    },
+                    "ignore": false
+                }
+            ],
+            "name": "Default profile",
+            "selected": true,
+            "virtual_hid_keyboard": { "keyboard_type_v2": "ansi" }
+        }
+    ]
+}

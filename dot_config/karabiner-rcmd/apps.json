@@ -1,0 +1,166 @@
+{
+  "description": "Karabiner-based replacement for rcmd.app. Right Command + key switches/launches these apps; unmapped letters fall back to running visible apps with matching initials.",
+  "generated_from": "/Users/khang/Library/Containers/com.lowtechguys.rcmd/Data/Library/Preferences/com.lowtechguys.rcmd.plist",
+  "generated_at": "2026-05-12T20:40:26+07:00",
+  "keys": {
+    "0": [
+      {
+        "name": "Ghostty",
+        "bundle_id": "com.mitchellh.ghostty",
+        "path": "/Applications/Ghostty.app",
+        "source": "appKeyAssignments",
+        "when_already_focused_action": 2,
+        "index": 0
+      }
+    ],
+    "8": [
+      {
+        "name": "Slack",
+        "bundle_id": "com.tinyspeck.slackmacgap",
+        "path": "/Applications/Slack.app",
+        "source": "appKeyAssignments",
+        "when_already_focused_action": 2,
+        "index": 0
+      }
+    ],
+    "9": [
+      {
+        "name": "Brave Browser",
+        "bundle_id": "com.brave.Browser",
+        "path": "/Applications/Brave Browser.app",
+        "source": "appKeyAssignments",
+        "when_already_focused_action": 2,
+        "index": 0
+      }
+    ],
+    "f": [
+      {
+        "name": "Finder",
+        "bundle_id": "com.apple.finder",
+        "path": "/System/Library/CoreServices/Finder.app",
+        "source": "dynamicAppKeyAssignments",
+        "when_already_focused_action": 2,
+        "index": 0
+      }
+    ],
+    "l": [
+      {
+        "name": "Linear",
+        "bundle_id": "com.linear",
+        "path": "/Applications/Linear.app",
+        "source": "karabiner-rcmd-map",
+        "mapped_at": "2026-05-13T21:41:32+07:00"
+      }
+    ],
+    "n": [
+      {
+        "name": "Notes",
+        "bundle_id": "com.apple.Notes",
+        "path": "/System/Applications/Notes.app",
+        "source": "karabiner-rcmd-map",
+        "mapped_at": "2026-06-20T15:13:06+07:00"
+      }
+    ],
+    "p": [
+      {
+        "name": "prl_client_app",
+        "bundle_id": "com.parallels.desktop.console",
+        "path": "/Applications/Parallels Desktop.app",
+        "source": "karabiner-rcmd-map",
+        "mapped_at": "2026-07-04T12:31:06+07:00"
+      }
+    ],
+    "q": [
+      {
+        "name": "QuickTime Player",
+        "bundle_id": "com.apple.QuickTimePlayerX",
+        "path": "/System/Applications/QuickTime Player.app",
+        "source": "dynamicAppKeyAssignments",
+        "when_already_focused_action": 2,
+        "index": 4
+      }
+    ],
+    "g": [
+      {
+        "name": "Gmail",
+        "bundle_id": "com.brave.Browser.app.fmgjjmmmlfnkbppncabfkddbjimcfncm",
+        "path": "/Users/khang/Applications/Brave Browser Apps.localized/Gmail.app",
+        "source": "karabiner-rcmd-map",
+        "mapped_at": "2026-05-14T09:28:34+07:00"
+      }
+    ],
+    "c": [
+      {
+        "name": "Claude",
+        "bundle_id": "com.anthropic.claudefordesktop",
+        "path": "/Applications/Claude.app",
+        "source": "karabiner-rcmd-map",
+        "mapped_at": "2026-05-14T13:18:10+07:00"
+      }
+    ],
+    "7": [
+      {
+        "name": "Claude",
+        "bundle_id": "com.anthropic.claudefordesktop",
+        "path": "/Applications/Claude.app",
+        "source": "karabiner-rcmd-map",
+        "mapped_at": "2026-05-19T11:02:01+07:00"
+      }
+    ],
+    "i": [
+      {
+        "name": "Hermes",
+        "bundle_id": "com.nousresearch.hermes",
+        "path": "/Users/khang/.hermes/hermes-agent/apps/desktop/release/mac-arm64/Hermes.app",
+        "source": "karabiner-rcmd-map",
+        "mapped_at": "2026-06-06T12:27:17+07:00"
+      }
+    ],
+    "o": [
+      {
+        "name": "Obsidian",
+        "bundle_id": "md.obsidian",
+        "path": "/Applications/Obsidian.app",
+        "source": "karabiner-rcmd-map",
+        "mapped_at": "2026-05-27T21:47:26+07:00"
+      }
+    ],
+    "h": [
+      {
+        "name": "Hermes",
+        "bundle_id": "com.nousresearch.hermes",
+        "path": "/Users/khang/.hermes/hermes-agent/apps/desktop/release/mac-arm64/Hermes.app",
+        "source": "karabiner-rcmd-map",
+        "mapped_at": "2026-06-06T12:27:17+07:00"
+      }
+    ],
+    "m": [
+      {
+        "name": "ghostty",
+        "bundle_id": "com.mitchellh.ghostty",
+        "path": "/Applications/Ghostty.app",
+        "source": "karabiner-rcmd-map",
+        "mapped_at": "2026-06-28T06:26:03+07:00"
+      }
+    ],
+    "x": [
+      {
+        "name": "Codex",
+        "bundle_id": "com.openai.codex",
+        "path": "/Applications/Codex.app",
+        "source": "karabiner-rcmd-map",
+        "mapped_at": "2026-06-26T10:27:31+07:00"
+      }
+    ],
+    "k": [
+      {
+        "name": "KeePassXC",
+        "bundle_id": "org.keepassxc.keepassxc",
+        "path": "/Applications/KeePassXC.app",
+        "source": "karabiner-rcmd-map",
+        "mapped_at": "2026-06-27T16:17:16+07:00"
+      }
+    ]
+  },
+  "updated_at": "2026-07-04T12:31:06+07:00"
+}

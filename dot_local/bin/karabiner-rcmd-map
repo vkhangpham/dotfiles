@@ -1,0 +1,348 @@
+#!/usr/bin/env python3
+"""Manage the Karabiner-based Right Command app switcher.
+
+Common use:
+  karabiner-rcmd-map --list
+  karabiner-rcmd-map n              # map frontmost app to Right Cmd+n
+  karabiner-rcmd-map --remove n
+  karabiner-rcmd-map --rebuild      # regenerate Karabiner rules from apps.json
+
+The generated Karabiner rules use native software_function.open_application for
+configured one-app mappings, so switching stays fast. Dynamic fallbacks still use
+karabiner-rcmd-switch.
+"""
+from __future__ import annotations
+
+import argparse
+import datetime as _dt
+import json
+import os
+import plistlib
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+HOME = Path.home()
+CONFIG_PATH = HOME / ".config" / "karabiner-rcmd" / "apps.json"
+KARABINER_PATH = HOME / ".config" / "karabiner" / "karabiner.json"
+BACKUP_DIR = HOME / ".config" / "karabiner" / "automatic_backups"
+SWITCH_BIN = HOME / ".local" / "bin" / "karabiner-rcmd-switch"
+MAP_BIN = HOME / ".local" / "bin" / "karabiner-rcmd-map"
+KARABINER_CLI = Path("/Library/Application Support/org.pqrs/Karabiner-Elements/bin/karabiner_cli")
+SWITCH_RULE_DESC = "Right Command app switcher (Karabiner RCMD replacement)"
+ASSIGN_RULE_DESC = "Right Command+Option assign frontmost app (Karabiner RCMD replacement)"
+ALL_KEYS = list("abcdefghijklmnopqrstuvwxyz") + list("0123456789")
+
+
+def run(cmd, timeout=10):
+    return subprocess.run(cmd, text=True, capture_output=True, timeout=timeout)
+
+
+def osa(script):
+    proc = run(["/usr/bin/osascript", "-e", script], timeout=8)
+    if proc.returncode != 0:
+        raise RuntimeError(proc.stderr.strip() or proc.stdout.strip() or "osascript failed")
+    return proc.stdout.strip()
+
+
+def apple_string(value):
+    return str(value).replace("\\", "\\\\").replace('"', '\\"')
+
+
+def normalize_key(key):
+    key = str(key or "").strip().lower()
+    if len(key) != 1 or key not in ALL_KEYS:
+        raise SystemExit(f"key must be one letter a-z or one digit 0-9, got: {key!r}")
+    return key
+
+
+def load_json(path, default):
+    try:
+        return json.loads(path.read_text())
+    except FileNotFoundError:
+        return default
+
+
+def write_json(path, data):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n")
+
+
+def app_info_from_path(path, fallback_name="", fallback_bundle=""):
+    path = str(path or "").strip()
+    name = str(fallback_name or "").strip()
+    bundle_id = str(fallback_bundle or "").strip()
+    if path:
+        info_path = Path(path) / "Contents" / "Info.plist"
+        try:
+            with info_path.open("rb") as f:
+                info = plistlib.load(f)
+            plist_name = info.get("CFBundleDisplayName") or info.get("CFBundleName")
+            plist_bundle = info.get("CFBundleIdentifier")
+            if plist_name and (not name or name in {"app_mode_loader", "Application Stub"}):
+                name = str(plist_name)
+            if plist_bundle and not bundle_id:
+                bundle_id = str(plist_bundle)
+        except Exception:
+            pass
+        if (not name or name in {"app_mode_loader", "Application Stub"}) and path.endswith(".app"):
+            name = Path(path).stem
+    return name, bundle_id, path
+
+
+def frontmost_app_entry():
+    script = """tell application "System Events"
+set p to first application process whose frontmost is true
+set appName to name of p
+set bundleID to bundle identifier of p
+try
+  set appFile to application file of p as alias
+  set appPath to POSIX path of appFile
+on error
+  set appPath to ""
+end try
+return appName & tab & bundleID & tab & appPath
+end tell"""
+    out = osa(script)
+    parts = out.split("\t")
+    if len(parts) < 2:
+        raise SystemExit(f"could not identify frontmost app: {out!r}")
+    name = parts[0]
+    bundle_id = parts[1]
+    path = parts[2] if len(parts) > 2 else ""
+    name, bundle_id, path = app_info_from_path(path, name, bundle_id)
+    if not bundle_id:
+        raise SystemExit("frontmost app has no bundle identifier")
+    return {
+        "name": name or bundle_id,
+        "bundle_id": bundle_id,
+        "path": path,
+        "source": "karabiner-rcmd-map",
+        "mapped_at": _dt.datetime.now().astimezone().isoformat(timespec="seconds"),
+    }
+
+
+def app_entry_from_application_name(app_name):
+    script = f'POSIX path of (path to application "{apple_string(app_name)}")'
+    path = osa(script)
+    name, bundle_id, path = app_info_from_path(path, app_name, "")
+    if not bundle_id:
+        raise SystemExit(f"could not read bundle id for application: {app_name}")
+    return {
+        "name": name or app_name,
+        "bundle_id": bundle_id,
+        "path": path,
+        "source": "karabiner-rcmd-map",
+        "mapped_at": _dt.datetime.now().astimezone().isoformat(timespec="seconds"),
+    }
+
+
+def app_entry_from_args(args):
+    if args.app:
+        return app_entry_from_application_name(args.app)
+    if args.bundle:
+        name, bundle_id, path = app_info_from_path(args.path or "", args.name or args.bundle, args.bundle)
+        return {
+            "name": name or bundle_id,
+            "bundle_id": bundle_id,
+            "path": path,
+            "source": "karabiner-rcmd-map",
+            "mapped_at": _dt.datetime.now().astimezone().isoformat(timespec="seconds"),
+        }
+    return frontmost_app_entry()
+
+
+def load_apps_config():
+    data = load_json(CONFIG_PATH, {"keys": {}})
+    data.setdefault("description", "Karabiner-based replacement for rcmd.app.")
+    data.setdefault("keys", {})
+    return data
+
+
+def list_mappings():
+    data = load_apps_config()
+    keys = data.get("keys") or {}
+    for key in sorted(keys):
+        entries = keys.get(key) or []
+        if not entries:
+            continue
+        if len(entries) == 1:
+            e = entries[0]
+            mode = "instant" if e.get("bundle_id") else "fallback"
+            print(f"{key}: {e.get('name') or e.get('bundle_id')} ({e.get('bundle_id')}) [{mode}]")
+        else:
+            summary = ", ".join(f"{e.get('name') or e.get('bundle_id')} ({e.get('bundle_id')})" for e in entries)
+            print(f"{key}: {summary} [dynamic/cycle]")
+
+
+def from_clause(key, mandatory):
+    return {
+        "key_code": key,
+        "modifiers": {
+            "mandatory": mandatory,
+            "optional": ["shift", "caps_lock"],
+        },
+    }
+
+
+def build_switch_rule(apps_config):
+    keys_map = apps_config.get("keys") or {}
+    direct = []
+    fallback = []
+    for key in ALL_KEYS:
+        entries = keys_map.get(key) or []
+        if len(entries) == 1 and entries[0].get("bundle_id"):
+            bundle_id = entries[0]["bundle_id"]
+            direct.append({
+                "type": "basic",
+                "from": from_clause(key, ["right_command"]),
+                "to": [
+                    {
+                        "software_function": {
+                            "open_application": {
+                                "bundle_identifier": bundle_id,
+                            }
+                        }
+                    }
+                ],
+            })
+        else:
+            fallback.append({
+                "type": "basic",
+                "from": from_clause(key, ["right_command"]),
+                "to": [
+                    {"shell_command": f"{SWITCH_BIN} {key}"}
+                ],
+            })
+    return {
+        "description": SWITCH_RULE_DESC,
+        "manipulators": direct + fallback,
+    }
+
+
+def build_assign_rule():
+    manipulators = []
+    for key in ALL_KEYS:
+        manipulators.append({
+            "type": "basic",
+            "from": from_clause(key, ["right_command", "option"]),
+            "to": [
+                {"shell_command": f"{MAP_BIN} --quiet {key}"}
+            ],
+        })
+    return {
+        "description": ASSIGN_RULE_DESC,
+        "manipulators": manipulators,
+    }
+
+
+def backup_karabiner():
+    BACKUP_DIR.mkdir(parents=True, exist_ok=True)
+    ts = _dt.datetime.now().strftime("%Y%m%d-%H%M%S")
+    dest = BACKUP_DIR / f"karabiner_before_rcmd_map_{ts}.json"
+    shutil.copy2(KARABINER_PATH, dest)
+    return dest
+
+
+def reload_karabiner():
+    if not KARABINER_CLI.exists():
+        return
+    proc = run([str(KARABINER_CLI), "--show-current-profile-name"], timeout=5)
+    profile = proc.stdout.strip()
+    if proc.returncode == 0 and profile:
+        run([str(KARABINER_CLI), "--select-profile", profile], timeout=8)
+
+
+def rebuild_karabiner(apps_config, no_backup=False):
+    kar = load_json(KARABINER_PATH, None)
+    if not kar:
+        raise SystemExit(f"could not read {KARABINER_PATH}")
+    profiles = kar.get("profiles") or []
+    if not profiles:
+        raise SystemExit("Karabiner config has no profiles")
+    profile = next((p for p in profiles if p.get("selected")), profiles[0])
+    rules = profile.setdefault("complex_modifications", {}).setdefault("rules", [])
+
+    old_index = next((i for i, r in enumerate(rules) if r.get("description") == SWITCH_RULE_DESC), len(rules))
+    rules[:] = [r for r in rules if r.get("description") not in {SWITCH_RULE_DESC, ASSIGN_RULE_DESC}]
+    if old_index > len(rules):
+        old_index = len(rules)
+    rules.insert(old_index, build_switch_rule(apps_config))
+    rules.insert(old_index + 1, build_assign_rule())
+
+    backup = None if no_backup else backup_karabiner()
+    KARABINER_PATH.write_text(json.dumps(kar, indent=4, ensure_ascii=False) + "\n")
+    reload_karabiner()
+    return backup
+
+
+def set_mapping(key, entry, quiet=False):
+    data = load_apps_config()
+    data["keys"][key] = [entry]
+    data["updated_at"] = _dt.datetime.now().astimezone().isoformat(timespec="seconds")
+    write_json(CONFIG_PATH, data)
+    backup = rebuild_karabiner(data)
+    if not quiet:
+        print(f"Right Cmd+{key} -> {entry.get('name')} ({entry.get('bundle_id')})")
+        if backup:
+            print(f"Karabiner backup: {backup}")
+
+
+def remove_mapping(key, quiet=False):
+    data = load_apps_config()
+    existed = key in (data.get("keys") or {})
+    data.get("keys", {}).pop(key, None)
+    data["updated_at"] = _dt.datetime.now().astimezone().isoformat(timespec="seconds")
+    write_json(CONFIG_PATH, data)
+    backup = rebuild_karabiner(data)
+    if not quiet:
+        if existed:
+            print(f"Removed Right Cmd+{key}; that key now uses the dynamic fallback.")
+        else:
+            print(f"Right Cmd+{key} was not explicitly mapped; it still uses the dynamic fallback.")
+        if backup:
+            print(f"Karabiner backup: {backup}")
+
+
+def parse_args(argv):
+    parser = argparse.ArgumentParser(description="Manage Karabiner Right Command app mappings")
+    parser.add_argument("key", nargs="?", help="key to map to the frontmost app, e.g. n")
+    parser.add_argument("--list", action="store_true", help="list current explicit mappings")
+    parser.add_argument("--remove", metavar="KEY", help="remove explicit mapping for key")
+    parser.add_argument("--rebuild", action="store_true", help="regenerate Karabiner rules from apps.json")
+    parser.add_argument("--app", help="map key to an app by name instead of the frontmost app")
+    parser.add_argument("--bundle", help="map key to a bundle identifier instead of the frontmost app")
+    parser.add_argument("--name", help="display name to store with --bundle")
+    parser.add_argument("--path", help="app bundle path to store with --bundle")
+    parser.add_argument("--quiet", action="store_true", help="suppress normal output; useful from Karabiner shell_command")
+    parser.add_argument("--no-backup", action="store_true", help="do not create a Karabiner backup when rebuilding")
+    return parser.parse_args(argv)
+
+
+def main(argv):
+    args = parse_args(argv)
+    if args.list:
+        list_mappings()
+        return 0
+    if args.remove:
+        remove_mapping(normalize_key(args.remove), args.quiet)
+        return 0
+    if args.rebuild:
+        data = load_apps_config()
+        backup = rebuild_karabiner(data, no_backup=args.no_backup)
+        if not args.quiet:
+            print("Rebuilt Karabiner RCMD replacement rules.")
+            if backup:
+                print(f"Karabiner backup: {backup}")
+        return 0
+    if args.key:
+        key = normalize_key(args.key)
+        entry = app_entry_from_args(args)
+        set_mapping(key, entry, args.quiet)
+        return 0
+    raise SystemExit("usage: karabiner-rcmd-map --list | KEY | --remove KEY | --rebuild")
+
+
+if __name__ == "__main__":
+    raise SystemExit(main(sys.argv[1:]))

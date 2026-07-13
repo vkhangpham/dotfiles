@@ -1,27 +1,61 @@
 {
   "env": {
-    "ANTHROPIC_BASE_URL": "https://api.z.ai/api/anthropic",
     "API_TIMEOUT_MS": "3000000",
-    "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
-    "ANTHROPIC_DEFAULT_OPUS_MODEL": "GLM-5.1"
+    "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1"
   },
+  "model": "opus[1m]",
+  "enableWorkflows": true,
   "statusLine": {
     "type": "command",
-    "command": "bash \"$HOME/.claude/plugins/marketplaces/caveman/hooks/caveman-statusline.sh\""
+    "command": "bash \"$HOME/.claude/statusline-ps1.sh\""
   },
   "enabledPlugins": {
-    "caveman@caveman": true
+    "caveman@caveman": true,
+    "dspy-agent-skills@dspy-agent-skills": true,
+    "compound-engineering@compound-engineering-plugin": true,
+    "frontend-design@claude-plugins-official": true,
+    "context7@claude-plugins-official": true,
+    "skill-creator@claude-plugins-official": true,
+    "github@claude-plugins-official": true,
+    "claude-md-management@claude-plugins-official": true,
+    "pyright-lsp@claude-plugins-official": true,
+    "chrome-devtools-mcp@claude-plugins-official": true,
+    "linear@claude-plugins-official": true,
+    "reverse-engineering@claude-code-workflows": true
   },
   "extraKnownMarketplaces": {
     "caveman": {
       "source": {
         "source": "github",
         "repo": "JuliusBrussee/caveman"
+      },
+      "autoUpdate": true
+    },
+    "dspy-agent-skills": {
+      "source": {
+        "source": "github",
+        "repo": "intertwine/dspy-agent-skills"
+      },
+      "autoUpdate": true
+    },
+    "compound-engineering-plugin": {
+      "source": {
+        "source": "github",
+        "repo": "EveryInc/compound-engineering-plugin"
+      },
+      "autoUpdate": true
+    },
+    "claude-code-workflows": {
+      "source": {
+        "source": "github",
+        "repo": "wshobson/agents"
       }
     }
   },
-  "effortLevel": "high",
+  "effortLevel": "xhigh",
   "advisorModel": "opus",
   "skipDangerousModePermissionPrompt": true,
-  "model": "opus[1m]"
+  "skipWorkflowUsageWarning": true,
+  "theme": "dark",
+  "autoCompactEnabled": true
 }

@@ -8,6 +8,12 @@ export BAT_THEME=ansi
 export OMARCHY_PATH="$HOME/.local/share/omarchy"
 export PATH="$OMARCHY_PATH/bin:$PATH:$HOME/.local/bin"
 
+# Bun installs outside the standard system paths on macOS.
+if [[ -d "$HOME/.bun/bin" ]]; then
+  export BUN_INSTALL="$HOME/.bun"
+  export PATH="$BUN_INSTALL/bin:$PATH"
+fi
+
 # macOS/Homebrew fallbacks
 [[ -d /usr/local/bin ]] && export PATH="/usr/local/bin:$PATH"
 [[ -d /opt/homebrew/bin ]] && export PATH="/opt/homebrew/bin:$PATH"

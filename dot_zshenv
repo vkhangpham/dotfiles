@@ -1,0 +1,2 @@
+# Keep non-interactive zsh environments usable without putting secrets here.
+[[ -f "$HOME/.cargo/env" ]] && source "$HOME/.cargo/env"

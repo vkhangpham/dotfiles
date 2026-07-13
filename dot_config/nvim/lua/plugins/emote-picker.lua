@@ -1,7 +1,12 @@
+local emote_picker_dir = vim.fn.expand("~/.config/nvim/local-plugins/emote-picker")
+
 return {
   {
-    dir = vim.fn.expand("~/.config/nvim/local-plugins/emote-picker"),
+    dir = emote_picker_dir,
     name = "emote-picker",
+    enabled = function()
+      return vim.uv.fs_stat(emote_picker_dir) ~= nil
+    end,
     dependencies = { "3rd/image.nvim" },
     keys = {
       {

@@ -14,9 +14,14 @@ local function normal_target_window()
   return vim.api.nvim_get_current_win()
 end
 
+local function normalize_path(path)
+  path = vim.fn.expand(path or vim.fn.getcwd())
+  return vim.fs.normalize(vim.uv.fs_realpath(path) or path)
+end
+
 local function open_mini_files(path)
   local mini_files = require("mini.files")
-  mini_files.open(path, true)
+  mini_files.open(normalize_path(path), false)
 
   local win = normal_target_window()
   if vim.api.nvim_win_is_valid(win) then
@@ -26,27 +31,32 @@ end
 
 return {
   "nvim-mini/mini.files",
+  lazy = false,
+  init = function()
+    vim.g.loaded_netrw = 1
+    vim.g.loaded_netrwPlugin = 1
+  end,
   keys = {
     {
-      "<leader>e",
+      "<leader>E",
       function()
         open_mini_files(LazyVim.root())
       end,
       desc = "Explorer mini.files (root dir)",
     },
     {
-      "<leader>E",
+      "<leader>fm",
       function()
-        open_mini_files(vim.uv.cwd())
+        open_mini_files(vim.fn.getcwd())
       end,
       desc = "Explorer mini.files (cwd)",
     },
     {
-      "<leader>fm",
+      "<leader>e",
       function()
         local path = vim.api.nvim_buf_get_name(0)
         if path == "" then
-          path = vim.uv.cwd()
+          path = vim.fn.getcwd()
         end
         open_mini_files(path)
       end,

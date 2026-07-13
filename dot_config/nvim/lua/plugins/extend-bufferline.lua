@@ -2,6 +2,7 @@ return {
   "akinsho/bufferline.nvim",
   opts = function(_, opts)
     opts.options = opts.options or {}
-    opts.options.always_show_bufferline = true
+    -- Avoid the empty top bufferline on the dashboard/single-buffer views.
+    opts.options.always_show_bufferline = false
   end,
 }

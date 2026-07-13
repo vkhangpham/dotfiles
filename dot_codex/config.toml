@@ -1,3 +1,77 @@
-# Current Linux source-of-truth machine does not persist shareable Codex
-# preferences beyond local auth state in ~/.codex/auth.json.
-# Keep auth out of the repo. Add future safe defaults here when they become real.
+# Stable, shareable Codex preferences only. Auth, project trust, generated
+# marketplace revisions, app-version paths, and MCP runtime state stay local.
+model = "gpt-5.6-sol"
+model_reasoning_effort = "xhigh"
+approvals_reviewer = "user"
+service_tier = "default"
+
+[plugins."compound-engineering@compound-engineering-plugin"]
+enabled = true
+
+[plugins."github@openai-curated"]
+enabled = true
+
+[plugins."linear@openai-curated"]
+enabled = true
+
+[plugins."claude-md-management@claude-plugins-official"]
+enabled = true
+
+[plugins."context7@claude-plugins-official"]
+enabled = true
+
+[plugins."frontend-design@claude-plugins-official"]
+enabled = true
+
+[plugins."github@claude-plugins-official"]
+enabled = true
+
+[plugins."linear@claude-plugins-official"]
+enabled = true
+
+[plugins."skill-creator@claude-plugins-official"]
+enabled = true
+
+[plugins."documents@openai-primary-runtime"]
+enabled = true
+
+[plugins."pdf@openai-primary-runtime"]
+enabled = true
+
+[plugins."spreadsheets@openai-primary-runtime"]
+enabled = true
+
+[plugins."presentations@openai-primary-runtime"]
+enabled = true
+
+[plugins."computer-use@openai-bundled"]
+enabled = true
+
+[plugins."chrome@openai-bundled"]
+enabled = true
+
+[plugins."browser@openai-bundled"]
+enabled = true
+
+[notice]
+hide_full_access_warning = true
+
+[features]
+memories = true
+js_repl = false
+
+[shell_environment_policy]
+inherit = "core"
+
+[shell_environment_policy.set]
+API_TIMEOUT_MS = "3000000"
+CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC = "1"
+
+[desktop]
+conversationDetailMode = "STEPS_COMMANDS"
+ambient-suggestions-enabled = true
+followUpQueueMode = "queue"
+dock-icon-preference = "codex-system"
+
+[desktop.open-in-target-preferences]
+global = "ghostty"

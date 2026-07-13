@@ -24,9 +24,10 @@ This repo uses `chezmoi`-style naming:
 - tmux under `dot_config/tmux/tmux.conf`
 - Git config under `dot_config/git/`
 - Starship under `dot_config/starship.toml`
-- Ghostty under `dot_config/ghostty/config`
+- Ghostty under `dot_config/ghostty/config.tmpl`
 - tmux-sessionizer config under `dot_config/tmux-sessionizer/`
 - custom tmux-sessionizer executable under `dot_local/bin/tmux-sessionizer`
+- personal Git identity by default, with a work-only include for repos under `~/work/`
 - desktop config under `dot_config/hypr/`, `dot_config/waybar/`, and `dot_config/walker/`
 - Omarchy post-update reapply hook under `dot_config/omarchy/hooks/post-update`
 - Hermes config under `dot_hermes/config.yaml`
@@ -34,9 +35,13 @@ This repo uses `chezmoi`-style naming:
 ### macOS
 - split zsh layout under `dot_config/zsh/`
 - tiny `dot_zshrc.tmpl` loader
+- sanitized `dot_zshenv` for non-interactive Cargo paths
 - `dot_tmux.conf` loader that points tmux at XDG config
-- sanitized Claude Code settings under `dot_claude/settings.json`
-- placeholder Codex config under `dot_codex/config.toml`
+- Ghostty's Catppuccin theme and macOS font size through an OS-aware template
+- Karabiner rules, import assets, Right Command app mappings, helper scripts, and the Swift scroll-helper source
+- sanitized Claude Code settings and status line under `dot_claude/`
+- stable, sanitized Codex preferences under `dot_codex/config.toml`
+- GitHub SSH host configuration under `dot_ssh/config`
 
 ## What is intentionally not tracked
 
@@ -53,6 +58,7 @@ This repo uses `chezmoi`-style naming:
 - `~/.claude/file-history/*`
 - `~/.claude/tasks/*`
 - `~/.codex/auth.json`
+- `~/.config/karabiner/automatic_backups/*`
 
 ### Scratch / machine-specific leftovers
 - temporary Neovim scratch files like `test.qmd`
@@ -89,7 +95,15 @@ Use the split zsh config:
 Secrets should come from a local untracked file:
 - `~/.credentials/.env`
 
+The `zx` launcher intentionally reads only a Z.AI-compatible key from
+`~/.creds/.env`; it does not source that whole file into the shell.
+
 The zsh env file exports a small allowlist of GUI env vars with `launchctl setenv` when present.
+
+Karabiner restoration also needs its helpers:
+- `karabiner-rcmd-map` and `karabiner-rcmd-switch` are applied to `~/.local/bin/`
+- chezmoi compiles `~/.local/src/karabiner-scroll-helper/main.swift` after changes on macOS
+- timestamped Karabiner backups remain local and untracked
 
 ## Claude / Codex / Hermes notes
 
@@ -104,7 +118,8 @@ Do not put raw auth tokens back into it.
 Tracked file:
 - `dot_codex/config.toml`
 
-Right now this is only a placeholder because the source machine had auth state but no real shareable Codex config file.
+This contains stable preferences and plugin enablement only. Auth, project trust,
+generated marketplace revisions, app-version paths, and MCP runtime state remain local.
 
 ### Hermes
 Tracked file:

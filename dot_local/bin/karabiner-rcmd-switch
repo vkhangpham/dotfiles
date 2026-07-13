@@ -1,0 +1,179 @@
+#!/usr/bin/env python3
+"""Karabiner-based rcmd replacement.
+
+Usage from Karabiner:
+  karabiner-rcmd-switch <key>
+
+Configured keys live in ~/.config/karabiner-rcmd/apps.json. If a key is not
+configured and is a letter, the script falls back to cycling visible running
+apps whose process name starts with that letter.
+"""
+from __future__ import annotations
+
+import json
+import os
+import subprocess
+import sys
+from pathlib import Path
+from typing import Any
+
+HOME = Path.home()
+CONFIG_PATH = Path(os.environ.get("KARABINER_RCMD_CONFIG", HOME / ".config" / "karabiner-rcmd" / "apps.json"))
+
+
+def run(cmd: list[str], timeout: float = 5.0) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(cmd, text=True, capture_output=True, timeout=timeout)
+
+
+def osa(script: str) -> str:
+    proc = run(["/usr/bin/osascript", "-e", script], timeout=5.0)
+    if proc.returncode != 0:
+        return ""
+    return proc.stdout.strip()
+
+
+def load_config() -> dict[str, Any]:
+    try:
+        return json.loads(CONFIG_PATH.read_text())
+    except Exception:
+        return {"keys": {}}
+
+
+def frontmost_bundle() -> str:
+    return osa('tell application "System Events" to get bundle identifier of first application process whose frontmost is true')
+
+
+def visible_running_apps() -> list[dict[str, str]]:
+    script = """tell application "System Events"
+set appList to {}
+repeat with p in (application processes whose background only is false)
+  set end of appList to (name of p) & tab & (bundle identifier of p)
+end repeat
+set AppleScript's text item delimiters to linefeed
+return appList as text
+end tell"""
+    out = osa(script)
+    apps: list[dict[str, str]] = []
+    seen: set[str] = set()
+    for line in out.splitlines():
+        if "\t" not in line:
+            continue
+        name, bundle = line.split("\t", 1)
+        name = name.strip()
+        bundle = bundle.strip()
+        if not name or not bundle or bundle in seen:
+            continue
+        seen.add(bundle)
+        apps.append({"name": name, "bundle_id": bundle, "path": "", "source": "running-initial"})
+    return apps
+
+
+def activate(app: dict[str, Any]) -> int:
+    bundle = str(app.get("bundle_id") or "").strip()
+    path = str(app.get("path") or "").strip()
+    name = str(app.get("name") or "").strip()
+    attempts: list[list[str]] = []
+    if bundle:
+        attempts.append(["/usr/bin/open", "-b", bundle])
+    if path:
+        attempts.append(["/usr/bin/open", path])
+    if name:
+        attempts.append(["/usr/bin/open", "-a", name])
+    for cmd in attempts:
+        try:
+            proc = run(cmd, timeout=8.0)
+        except Exception:
+            continue
+        if proc.returncode == 0:
+            return 0
+    return 1
+
+
+def matching_configured(config: dict[str, Any], key: str) -> list[dict[str, Any]]:
+    keys = config.get("keys") or {}
+    entries = keys.get(key) or keys.get(key.lower()) or []
+    return [dict(e) for e in entries if e.get("bundle_id") or e.get("path") or e.get("name")]
+
+
+def matching_dynamic(key: str, running: list[dict[str, str]]) -> list[dict[str, Any]]:
+    if len(key) != 1 or not key.isalpha():
+        return []
+    k = key.lower()
+    ignored_bundles = {
+        "org.pqrs.Karabiner-EventViewer",
+        "org.pqrs.Karabiner-Elements.Settings",
+        "org.pqrs.Karabiner-Menu",
+    }
+    matches = []
+    for app in running:
+        name = app.get("name", "")
+        bundle = app.get("bundle_id", "")
+        if bundle in ignored_bundles:
+            continue
+        if name.lower().startswith(k):
+            matches.append(dict(app))
+    return matches
+
+
+def choose(candidates: list[dict[str, Any]], running: list[dict[str, str]], front: str) -> dict[str, Any] | None:
+    if not candidates:
+        return None
+    running_bundles = {a.get("bundle_id") for a in running}
+    candidate_bundles = [c.get("bundle_id") for c in candidates]
+
+    # If the current app is in this key's group, choose the next running app in
+    # the group. This mimics rcmd's cycle behavior for duplicate initials.
+    if front and front in candidate_bundles and len(candidates) > 1:
+        start = candidate_bundles.index(front)
+        for offset in range(1, len(candidates) + 1):
+            cand = candidates[(start + offset) % len(candidates)]
+            if cand.get("bundle_id") in running_bundles or offset == len(candidates):
+                return cand
+
+    # Otherwise, prefer a currently-running app over launching a new one.
+    for cand in candidates:
+        if cand.get("bundle_id") in running_bundles:
+            return cand
+    return candidates[0]
+
+
+def main(argv: list[str]) -> int:
+    if len(argv) < 2 or argv[1] in {"-h", "--help"}:
+        print("usage: karabiner-rcmd-switch [--dry-run] [--list] <key>", file=sys.stderr)
+        return 2
+
+    if argv[1] == "--list":
+        config = load_config()
+        for key, entries in sorted((config.get("keys") or {}).items()):
+            print(f"{key}: " + ", ".join(f"{e.get('name')} ({e.get('bundle_id')})" for e in entries))
+        return 0
+
+    dry_run = False
+    args = argv[1:]
+    if args and args[0] == "--dry-run":
+        dry_run = True
+        args = args[1:]
+    if not args:
+        print("missing key", file=sys.stderr)
+        return 2
+
+    key = args[0].lower()
+    config = load_config()
+    running = visible_running_apps()
+    front = frontmost_bundle()
+    candidates = matching_configured(config, key)
+    source = "configured"
+    if not candidates:
+        candidates = matching_dynamic(key, running)
+        source = "running-initial"
+    target = choose(candidates, running, front)
+    if not target:
+        return 0
+    if dry_run:
+        print(json.dumps({"key": key, "source": source, "frontmost": front, "target": target}, indent=2))
+        return 0
+    return activate(target)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main(sys.argv))

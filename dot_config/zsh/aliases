@@ -66,19 +66,105 @@ alias ....='cd ../../..'
 # Tools
 alias c='opencode'
 alias cx='printf "\033[2J\033[3J\033[H" && claude --allow-dangerously-skip-permissions'
+zx() (
+  emulate -L zsh
+  setopt extended_glob
+
+  local env_file="$HOME/.creds/.env"
+  if [[ ! -f "$env_file" ]]; then
+    print -u2 "zx: missing $env_file"
+    return 1
+  fi
+
+  local zai_key line key value
+  local -a key_names=(
+    ANTHROPIC_AUTH_TOKEN
+    ZAI_API_KEY
+    Z_AI_API_KEY
+    ZHIPUAI_API_KEY
+    BIGMODEL_API_KEY
+    GLM_API_KEY
+  )
+
+  # Intentionally do not source the whole creds file: only extract the Z.AI key
+  # so unrelated secrets are not exported to Claude Code.
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    line="${line#export }"
+    [[ "$line" == [[:space:]]#\#* || "$line" != *=* ]] && continue
+
+    key="${line%%=*}"
+    key="${key//[[:space:]]/}"
+    (( ${key_names[(Ie)$key]} )) || continue
+
+    value="${line#*=}"
+    value="${value##[[:space:]]#}"
+    value="${value%%[[:space:]]#}"
+    if [[ "$value" == \"*\" ]]; then
+      value="${value#\"}"
+      value="${value%\"}"
+    elif [[ "$value" == \'*\' ]]; then
+      value="${value#\'}"
+      value="${value%\'}"
+    fi
+
+    zai_key="$value"
+    break
+  done < "$env_file"
+
+  if [[ -z "$zai_key" ]]; then
+    print -u2 "zx: no Z.AI API key found in $env_file (expected one of: ${key_names[*]})"
+    return 1
+  fi
+
+  # Z.AI Claude Code compatibility:
+  # - Claude Code still expects Claude model names/aliases at the CLI.
+  # - Z.AI maps those server-side to GLM models via the env vars below:
+  #   opus/sonnet -> glm-5.2[1m], haiku -> glm-4.5-air.
+  # - The [1m] suffix plus CLAUDE_CODE_AUTO_COMPACT_WINDOW=1000000 enables
+  #   GLM's 1M context path.
+  # Normalize accidental `--model glm-5.2[1m]` usage to a Claude alias because
+  # Claude Code's CLI may reject raw GLM model names even though Z.AI maps the
+  # alias server-side.
+  local -a claude_args
+  local arg next
+  while (( $# )); do
+    arg="$1"
+    case "$arg" in
+      --model)
+        if (( $# >= 2 )); then
+          next="$2"
+          case "$next" in
+            glm-5.2|GLM-5.2|glm-5.2\[1m\]|glm-5.2\[1M\]|GLM-5.2\[1m\]|GLM-5.2\[1M\]) claude_args+=(--model opus) ;;
+            glm-4.5-air|GLM-4.5-Air|GLM-4.5-AIR) claude_args+=(--model haiku) ;;
+            *) claude_args+=(--model "$next") ;;
+          esac
+          shift 2
+          continue
+        fi
+        ;;
+      --model=glm-5.2|--model=GLM-5.2|--model=glm-5.2\[1m\]|--model=glm-5.2\[1M\]|--model=GLM-5.2\[1m\]|--model=GLM-5.2\[1M\]) arg="--model=opus" ;;
+      --model=glm-4.5-air|--model=GLM-4.5-Air|--model=GLM-4.5-AIR) arg="--model=haiku" ;;
+    esac
+    claude_args+=("$arg")
+    shift
+  done
+
+  ANTHROPIC_AUTH_TOKEN="$zai_key" \
+  ANTHROPIC_BASE_URL="https://api.z.ai/api/anthropic" \
+  ANTHROPIC_DEFAULT_HAIKU_MODEL="glm-4.5-air" \
+  ANTHROPIC_DEFAULT_SONNET_MODEL="glm-5.2[1m]" \
+  ANTHROPIC_DEFAULT_OPUS_MODEL="glm-5.2[1m]" \
+  CLAUDE_CODE_AUTO_COMPACT_WINDOW="1000000" \
+  API_TIMEOUT_MS="${API_TIMEOUT_MS:-3000000}" \
+  command claude --allow-dangerously-skip-permissions --effort="max" "${claude_args[@]}"
+)
 alias d='docker'
 alias r='source ~/.zshrc'
 alias t='tmux-sessionizer'
 alias cls='clear'
 alias rcls='r && cls'
 alias h='hermes'
-n() {
-  if [ "$#" -eq 0 ]; then
-    command nvim
-  else
-    command nvim "$@"
-  fi
-}
+alias n='nvim'
 
 # Git
 alias g='git'
@@ -86,3 +172,4 @@ alias gcmm='git commit -m'
 alias gcm='git commit -m'
 alias gcam='git commit -a -m'
 alias gcad='git commit -a --amend'
+alias gst='git status'

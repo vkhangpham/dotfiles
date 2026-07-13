@@ -30,6 +30,11 @@ require("lazy").setup({
     version = false, -- always use the latest git commit
     -- version = "*", -- try installing the latest stable version for plugins that support semver
   },
+  rocks = {
+    -- Homebrew's luarocks is currently tied to Lua 5.5, but Neovim rockspec
+    -- builds need Lua 5.1/LuaJIT. Use lazy.nvim's isolated Lua 5.1 toolchain.
+    hererocks = true,
+  },
   install = { colorscheme = { "tokyonight", "habamax" } },
   checker = {
     enabled = true, -- check for plugin updates periodically
