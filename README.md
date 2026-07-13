@@ -43,6 +43,13 @@ This repo uses `chezmoi`-style naming:
 - stable, sanitized Codex preferences under `dot_codex/config.toml`
 - GitHub SSH host configuration under `dot_ssh/config`
 
+### Windows
+- AutoHotkey v2 keymaps, app-switch mappings, feature settings, and startup
+  installer under `dot_config/autohotkey/`
+- portable Karabiner behavior adapted to Windows conventions, including
+  Caps/Escape, terminal modifiers, Right Win app switching, and opt-in Lofree
+  media-key scrolling
+
 ## What is intentionally not tracked
 
 ### Secrets / auth / runtime state
@@ -104,6 +111,17 @@ Karabiner restoration also needs its helpers:
 - `karabiner-rcmd-map` and `karabiner-rcmd-switch` are applied to `~/.local/bin/`
 - chezmoi compiles `~/.local/src/karabiner-scroll-helper/main.swift` after changes on macOS
 - timestamped Karabiner backups remain local and untracked
+
+### On Windows
+Apply `dot_config/autohotkey/` to `%USERPROFILE%\.config\autohotkey`, install
+AutoHotkey v2, then run:
+
+```powershell
+& "$HOME\.config\autohotkey\install.ps1"
+```
+
+See `dot_config/autohotkey/README.md` for the keymap, per-app assignment flow,
+and the device-filtering limitation of the optional Lofree scroll mapping.
 
 ## Claude / Codex / Hermes notes
 
