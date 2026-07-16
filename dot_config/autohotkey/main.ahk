@@ -9,7 +9,6 @@ SetWorkingDir(A_ScriptDir)
 
 global AppsIni := A_ScriptDir . "\apps.ini"
 global SettingsIni := A_ScriptDir . "\settings.ini"
-global TerminalModifierSwap := ReadBool("features", "terminal_modifier_swap", true)
 global LofreeScroll := ReadBool("features", "lofree_scroll", false)
 global ScrollSteps := Max(1, IniRead(SettingsIni, "scroll", "steps", "7") + 0)
 global ScrollDelayMs := Max(0, IniRead(SettingsIni, "scroll", "delay_ms", "4") + 0)
@@ -17,27 +16,38 @@ global ScrollDelayMs := Max(0, IniRead(SettingsIni, "scroll", "delay_ms", "4") +
 RegisterAppHotkeys()
 RegisterScrollHotkeys()
 
-; Match the portable parts of the macOS Karabiner layout.
-CapsLock::Send("{Escape}")
+; Match the portable parts of the macOS Karabiner layout. CapsLock sends Escape,
+; but it must disable the Escape hotkey below for that instant. Otherwise the
+; synthetic Escape re-triggers Escape::backtick (AHK fires hotkeys on its own
+; same-level keystrokes) and CapsLock would type a backtick instead of Escape.
+CapsLock:: {
+    Hotkey("Escape", "Off")
+    Send("{Escape}")
+    Hotkey("Escape", "On")
+}
 Escape::Send("{vkC0}")
 +Escape::Send("+{vkC0}")
 #Escape::Send("#{vkC0}")
 #+Escape::Send("#+{vkC0}")
 
-; Right Win is reserved for the app switcher and does nothing by itself.
-RWin::return
+; The right Command key on a Mac-style keyboard reports as Right Win on Windows.
+; Remap it to Right Alt so it (a) drives the >! app-switcher hotkeys below and
+; (b) can never combine into Win+L, which would lock the machine and cannot be
+; blocked by a normal hotkey. A lone tap becomes a harmless Right Alt.
+RWin::RAlt
 
-; Windows already uses Win+Shift+S for the region screenshot UI. Preserve it
-; even inside terminals where left Win and left Ctrl are otherwise swapped.
-#HotIf TerminalModifierSwap && IsTerminalActive()
-$<#+s::Send("#+s")
-$<#c::Send("^+c")
-$<#v::Send("^+v")
-$<^c::Send("^c")
-$<^v::Send("^v")
+; macOS-style Command key. On the Mac layout the Command key sits where the
+; Windows key sits (right of Alt) and is the primary shortcut modifier: Cmd+C
+; copies, Cmd+V pastes, and so on. Make the left Win key behave like Cmd by
+; sending Ctrl for every combo. Physical Ctrl and Alt are left untouched, so
+; ctrl=ctrl and opt=alt as on the Mac. A lone Win tap now does nothing, like
+; Cmd, instead of opening the Start menu.
 LWin::LCtrl
-LCtrl::LWin
-#HotIf
+
+; Keep the native Win+Shift+S region screenshot. After the remap above a physical
+; Win+Shift+S arrives as Ctrl+Shift+S, so open the screen-snip overlay for that
+; combo. (A literal Ctrl+Shift+S also opens it, which is unused on the Mac layout.)
+^+s::Run("ms-screenclip:")
 
 ReadBool(section, key, defaultValue) {
     global SettingsIni
@@ -50,10 +60,13 @@ RegisterAppHotkeys() {
     keys := "abcdefghijklmnopqrstuvwxyz0123456789"
     Loop Parse, keys {
         key := A_LoopField
-        Hotkey(">#" . key, SwitchMappedApp.Bind(key))
-        Hotkey(">#+" . key, SwitchMappedApp.Bind(key))
-        Hotkey(">#!" . key, AssignActiveApp.Bind(key))
-        Hotkey(">#!+" . key, AssignActiveApp.Bind(key))
+        ; Right Alt is the app-switcher trigger: it sits where the Mac right
+        ; Command key does, so Right Alt+key mirrors the macOS "rcmd" switcher.
+        ; Add Ctrl (Right Alt+Ctrl+key) to assign the focused app to a key.
+        Hotkey(">!" . key, SwitchMappedApp.Bind(key))
+        Hotkey(">!+" . key, SwitchMappedApp.Bind(key))
+        Hotkey("^>!" . key, AssignActiveApp.Bind(key))
+        Hotkey("^>!+" . key, AssignActiveApp.Bind(key))
     }
 }
 
@@ -112,7 +125,7 @@ SwitchMappedApp(key, *) {
 
     windows := FindDynamicWindows(key)
     if !windows.Length {
-        Notify("No mapping or running app for Right Win+" . StrUpper(key))
+        Notify("No mapping or running app for Right Alt+" . StrUpper(key))
         return
     }
     CycleWindows(windows)
@@ -133,7 +146,7 @@ AssignActiveApp(key, *) {
         criteria := "ahk_exe " . processName
         command := Chr(34) . processPath . Chr(34)
         IniWrite(displayName . "|" . criteria . "|" . command, AppsIni, "apps", key)
-        Notify("Assigned Right Win+" . StrUpper(key) . " to " . displayName)
+        Notify("Assigned Right Alt+" . StrUpper(key) . " to " . displayName)
     } catch Error as err {
         Notify("Could not assign app: " . err.Message)
     }
@@ -168,29 +181,6 @@ CycleWindows(windows) {
             WinRestore(target)
         WinActivate(target)
     }
-}
-
-IsTerminalActive() {
-    static terminalProcesses := Map(
-        "alacritty.exe", true,
-        "cmd.exe", true,
-        "conemu64.exe", true,
-        "conhost.exe", true,
-        "ghostty.exe", true,
-        "hyper.exe", true,
-        "kitty.exe", true,
-        "mintty.exe", true,
-        "powershell.exe", true,
-        "pwsh.exe", true,
-        "rio.exe", true,
-        "tabby.exe", true,
-        "warp.exe", true,
-        "wezterm-gui.exe", true,
-        "windowsterminal.exe", true
-    )
-
-    try return terminalProcesses.Has(StrLower(WinGetProcessName("A")))
-    return false
 }
 
 RegisterScrollHotkeys() {

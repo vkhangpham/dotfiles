@@ -27,20 +27,28 @@ To remove only the startup shortcut:
 
 ## Key behavior
 
+- The left Win key acts as the macOS Command key: it sends Ctrl for every combo,
+  so Win+C copies, Win+V pastes, Win+A selects all, and so on, everywhere. This
+  matches the Mac layout where Command sits where the Windows key sits. Physical
+  Ctrl and Alt are untouched (ctrl=ctrl, opt=alt), and a lone Win tap does
+  nothing instead of opening the Start menu.
+- Win+Shift+S opens Windows' native region screenshot UI. (Because Win sends
+  Ctrl, a literal Ctrl+Shift+S also opens it.)
 - Caps Lock sends Escape.
 - Escape sends the backtick key; Shift+Escape sends tilde.
 - Win+Escape and Win+Shift+Escape preserve the modifier while sending backtick.
-- Win+Shift+S uses Windows' native region screenshot UI.
-- In known terminal emulators, physical left Win and left Ctrl are swapped.
-  Physical left Win+C/V sends terminal copy/paste; physical left Ctrl+C/V keeps
-  the control-key behavior used by shells.
-- Right Win+letter/number switches to or launches the app in `apps.ini`.
-- Right Win+Shift+letter/number does the same thing.
-- Right Win+Alt+letter/number assigns the focused app to that key. This updates
+- Right Alt+letter/number switches to or launches the app in `apps.ini`. Right
+  Alt sits where the macOS right Command key does, mirroring the "rcmd" switcher.
+- Right Alt+Shift+letter/number does the same thing.
+- Right Alt+Ctrl+letter/number assigns the focused app to that key. This updates
   the local `apps.ini`; copy the result back into the repo when it is worth
   sharing across Windows machines.
-- An unmapped Right Win key cycles running apps whose process starts with that
+- An unmapped Right Alt+key cycles running apps whose process starts with that
   letter.
+- The right Command key on a Mac-style keyboard reports as Right Win on Windows,
+  so it is remapped to Right Alt — that is what drives the switcher above, and it
+  prevents an accidental Win+L from locking the machine. A lone tap acts like a
+  normal Alt.
 
 The seeded app commands are best-effort executable names. Windows Store apps,
 portable installs, and differently named executables may need reassignment with
