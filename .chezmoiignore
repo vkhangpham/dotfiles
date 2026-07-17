@@ -1,0 +1,27 @@
+# Not deployed to $HOME
+README.md
+docs
+
+{{ if ne .chezmoi.os "darwin" }}
+# macOS-only: Karabiner stack and its helpers
+.config/karabiner
+.config/karabiner-rcmd
+.local/bin/karabiner-rcmd-map
+.local/bin/karabiner-rcmd-switch
+.local/src/karabiner-scroll-helper
+{{ end }}
+
+{{ if ne .chezmoi.os "windows" }}
+# Windows-only: AutoHotkey keymaps (applied manually on Windows anyway)
+.config/autohotkey
+{{ end }}
+
+{{ if and (eq .chezmoi.os "linux") (.chezmoi.kernel.osrelease | lower | contains "microsoft") }}
+# WSL: no Omarchy desktop stack, zsh is the shell here
+.config/hypr
+.config/waybar
+.config/walker
+.config/ghostty
+.config/omarchy
+.local/share/omarchy
+{{ end }}

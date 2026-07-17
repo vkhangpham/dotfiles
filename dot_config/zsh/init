@@ -19,12 +19,16 @@ if [[ -o interactive ]] && [[ -t 0 ]]; then
     source /opt/homebrew/opt/fzf/shell/completion.zsh
   elif [[ -f /usr/local/opt/fzf/shell/completion.zsh ]]; then
     source /usr/local/opt/fzf/shell/completion.zsh
+  elif [[ -f /usr/share/fzf/completion.zsh ]]; then
+    source /usr/share/fzf/completion.zsh
   fi
 
   if [[ -f /opt/homebrew/opt/fzf/shell/key-bindings.zsh ]]; then
     source /opt/homebrew/opt/fzf/shell/key-bindings.zsh
   elif [[ -f /usr/local/opt/fzf/shell/key-bindings.zsh ]]; then
     source /usr/local/opt/fzf/shell/key-bindings.zsh
+  elif [[ -f /usr/share/fzf/key-bindings.zsh ]]; then
+    source /usr/share/fzf/key-bindings.zsh
   fi
 
   if [[ -f "$HOME/.bun/_bun" ]]; then
@@ -35,6 +39,8 @@ if [[ -o interactive ]] && [[ -t 0 ]]; then
     source /opt/homebrew/share/zsh-autosuggestions/zsh-autosuggestions.zsh
   elif [[ -f /usr/local/share/zsh-autosuggestions/zsh-autosuggestions.zsh ]]; then
     source /usr/local/share/zsh-autosuggestions/zsh-autosuggestions.zsh
+  elif [[ -f /usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh ]]; then
+    source /usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh
   fi
 
   if command -v tmux-sessionizer >/dev/null 2>&1; then
@@ -49,5 +55,7 @@ if [[ -o interactive ]] && [[ -t 0 ]]; then
     source /opt/homebrew/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
   elif [[ -f /usr/local/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh ]]; then
     source /usr/local/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+  elif [[ -f /usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh ]]; then
+    source /usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
   fi
 fi

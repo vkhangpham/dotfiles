@@ -123,6 +123,23 @@ AutoHotkey v2, then run:
 See `dot_config/autohotkey/README.md` for the keymap, per-app assignment flow,
 and the device-filtering limitation of the optional Lofree scroll mapping.
 
+### On Arch WSL
+
+WSL is a first-class chezmoi target. `.chezmoiignore` drops macOS-only files
+(Karabiner), Windows-only files (AutoHotkey), and the Omarchy desktop stack
+(hypr/waybar/walker/ghostty/omarchy bash) when the kernel reports Microsoft.
+
+Bootstrap on a fresh distro:
+
+```sh
+sudo pacman -S --needed base-devel git zsh neovim tmux starship fzf ripgrep fd \
+  eza bat zoxide chezmoi github-cli nodejs npm zsh-autosuggestions zsh-syntax-highlighting
+chezmoi init https://github.com/vkhangpham/dotfiles.git --apply
+```
+
+The zsh split config is the shell entrypoint (same as macOS); `dot_config/zsh/init`
+picks up fzf/autosuggestions/syntax-highlighting from Arch's `/usr/share` paths.
+
 ## Claude / Codex / Hermes notes
 
 ### Claude Code
