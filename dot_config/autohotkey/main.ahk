@@ -49,6 +49,12 @@ LWin::LCtrl
 ; combo. (A literal Ctrl+Shift+S also opens it, which is unused on the Mac layout.)
 ^+s::Run("ms-screenclip:")
 
+; Restore Windows clipboard history. Normally Win+V, but Win now sends Ctrl so
+; Win+V is paste. Bind it to Win+Shift+C, which arrives as Ctrl+Shift+C after the
+; remap. Send("#v") emits a real Win+V -- the # modifier in a Send is applied
+; directly and is not re-caught by the LWin remap. (Literal Ctrl+Shift+C too.)
+^+c::Send("#v")
+
 ReadBool(section, key, defaultValue) {
     global SettingsIni
     fallback := defaultValue ? "1" : "0"

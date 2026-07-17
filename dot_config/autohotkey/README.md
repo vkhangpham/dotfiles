@@ -34,6 +34,10 @@ To remove only the startup shortcut:
   nothing instead of opening the Start menu.
 - Win+Shift+S opens Windows' native region screenshot UI. (Because Win sends
   Ctrl, a literal Ctrl+Shift+S also opens it.)
+- Win+Shift+C opens the Windows clipboard history. Win+V is normally that, but
+  Win now sends Ctrl so Win+V pastes; this restores the history picker. (A
+  literal Ctrl+Shift+C also opens it. Clipboard history must be enabled in
+  Windows Settings.)
 - Caps Lock sends Escape.
 - Escape sends the backtick key; Shift+Escape sends tilde.
 - Win+Escape and Win+Shift+Escape preserve the modifier while sending backtick.
