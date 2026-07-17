@@ -15,6 +15,8 @@ This repo uses `chezmoi`-style naming:
 - `dot_*` -> files/directories that become hidden in `$HOME`
 - `dot_config/...` -> `~/.config/...`
 - `dot_local/...` -> `~/.local/...`
+- `executable_*` -> files that must carry the exec bit in the target
+  (chezmoi ignores source file modes; without this prefix scripts land 644)
 
 ## What is tracked
 
