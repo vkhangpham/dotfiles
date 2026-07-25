@@ -16,12 +16,21 @@ docs
 .config/autohotkey
 {{ end }}
 
-{{ if and (eq .chezmoi.os "linux") (.chezmoi.kernel.osrelease | lower | contains "microsoft") }}
-# WSL: no Omarchy desktop stack, zsh is the shell here
+{{ $wsl := and (eq .chezmoi.os "linux") (.chezmoi.kernel.osrelease | lower | contains "microsoft") }}
+
+{{ if or (ne .chezmoi.os "linux") $wsl }}
+# Omarchy desktop stack: bare-metal Linux only.
+# Hyprland/Waybar/Walker and the Omarchy Bash tree have no meaning on macOS,
+# Windows, or WSL, so they must not land in $HOME there.
 .config/hypr
 .config/waybar
 .config/walker
-.config/ghostty
 .config/omarchy
 .local/share/omarchy
+{{ end }}
+
+{{ if $wsl }}
+# WSL: the terminal lives on the Windows side, so Ghostty config is unused.
+# (macOS still gets Ghostty through the OS-aware template.)
+.config/ghostty
 {{ end }}
