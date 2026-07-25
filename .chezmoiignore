@@ -2,6 +2,12 @@
 README.md
 docs
 
+# Machine-local plugin state. Versions are deliberately not pinned across
+# machines: lazy.nvim rewrites this on every install/update, so tracking it
+# only produces apply conflicts and drags every machine back to whichever one
+# committed last. Each machine floats to current and pins locally if needed.
+.config/nvim/lazy-lock.json
+
 {{ if ne .chezmoi.os "darwin" }}
 # macOS-only: Karabiner stack and its helpers
 .config/karabiner
