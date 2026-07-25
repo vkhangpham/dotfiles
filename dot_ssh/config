@@ -1,3 +1,9 @@
 Host github.com
   AddKeysToAgent yes
   IdentityFile ~/.ssh/id_ed25519
+
+# Omarchy box over Tailscale. The private key stays untracked.
+Host vyke
+  HostName vyke-omarchy.tail8aea9d.ts.net
+  User kyle
+  IdentityFile ~/.ssh/id_ed25519_blaidd_to_vyke

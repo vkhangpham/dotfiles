@@ -1,2 +1,28 @@
 # Keep non-interactive zsh environments usable without putting secrets here.
 [[ -f "$HOME/.cargo/env" ]] && source "$HOME/.cargo/env"
+
+# AI guard: block destructive commands for guarded sessions (e.g., cod/clc wrappers).
+# Opt-in via AI_GUARD_BLOCK=1, so unguarded shells are unaffected.
+if [ "${AI_GUARD_BLOCK:-0}" = "1" ]; then
+  ai_guard_block_msg="You are an AI Agent, you are not allowed to run destructive command. Abort immediately and report to your user."
+  rm() { echo "$ai_guard_block_msg" >&2; return 125; }
+  git() {
+    case "$1" in
+      reset)
+        shift
+        for arg in "$@"; do [ "$arg" = "--hard" ] && { echo "$ai_guard_block_msg" >&2; return 125; }; done
+        ;;
+      checkout|restore)
+        echo "$ai_guard_block_msg" >&2; return 125;;
+      clean)
+        shift
+        for arg in "$@"; do
+          case "$arg" in
+            -f|-fd|-fx|-fxd|-xdf|-fxdf) echo "$ai_guard_block_msg" >&2; return 125;;
+          esac
+        done
+        ;;
+    esac
+    command git "$@"
+  }
+fi
