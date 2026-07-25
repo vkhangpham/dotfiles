@@ -1,17 +1,36 @@
-local function normal_target_window()
-  local wins = vim.api.nvim_list_wins()
-  table.insert(wins, 1, vim.api.nvim_get_current_win())
+local function is_target_window(win)
+  -- Floating windows are never a valid target; that includes mini.files' own
+  -- windows, which would otherwise get the opened file written into them.
+  if not vim.api.nvim_win_is_valid(win) or vim.api.nvim_win_get_config(win).relative ~= "" then
+    return false
+  end
 
-  for _, win in ipairs(wins) do
-    if vim.api.nvim_win_is_valid(win) and vim.api.nvim_win_get_config(win).relative == "" then
-      local buf = vim.api.nvim_win_get_buf(win)
-      if vim.bo[buf].buftype == "" then
-        return win
-      end
+  local buf = vim.api.nvim_win_get_buf(win)
+  local ft = vim.bo[buf].filetype
+
+  if ft == "minifiles" then
+    return false
+  end
+
+  -- A real file/empty edit window is ideal. The Snacks dashboard is also a
+  -- valid target: opening a file should replace the dashboard rather than be
+  -- redirected into the explorer.
+  return vim.bo[buf].buftype == "" or ft == "snacks_dashboard"
+end
+
+local function preferred_target_window()
+  local current = vim.api.nvim_get_current_win()
+  if is_target_window(current) then
+    return current
+  end
+
+  for _, win in ipairs(vim.api.nvim_list_wins()) do
+    if is_target_window(win) then
+      return win
     end
   end
 
-  return vim.api.nvim_get_current_win()
+  return current
 end
 
 local function normalize_path(path)
@@ -21,9 +40,12 @@ end
 
 local function open_mini_files(path)
   local mini_files = require("mini.files")
+
+  -- Resolve the target before opening. Afterwards the current window is the
+  -- mini.files float, so a post-open fallback would target the explorer itself.
+  local win = preferred_target_window()
   mini_files.open(normalize_path(path), false)
 
-  local win = normal_target_window()
   if vim.api.nvim_win_is_valid(win) then
     mini_files.set_target_window(win)
   end
