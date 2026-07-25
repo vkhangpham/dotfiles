@@ -28,6 +28,15 @@ if [[ -f "$HOME/.credentials/.env" ]]; then
   unsetopt allexport
 fi
 
+# The GitHub MCP server sends "Bearer $GITHUB_PERSONAL_ACCESS_TOKEN" verbatim, so
+# an empty value yields a malformed header and a 400 rather than a clean auth
+# error. Fall back to the gh CLI keyring, which never goes stale and keeps the
+# token out of both this repo and ~/.credentials/.env.
+if [[ -z "$GITHUB_PERSONAL_ACCESS_TOKEN" ]] && command -v gh >/dev/null 2>&1; then
+  GITHUB_PERSONAL_ACCESS_TOKEN="$(gh auth token 2>/dev/null)"
+  [[ -n "$GITHUB_PERSONAL_ACCESS_TOKEN" ]] && export GITHUB_PERSONAL_ACCESS_TOKEN
+fi
+
 # Make common secret env vars available to GUI apps on macOS when present.
 if [[ "$OSTYPE" == darwin* ]] && command -v launchctl >/dev/null 2>&1; then
   typeset -a gui_env_vars=(
