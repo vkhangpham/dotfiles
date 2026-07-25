@@ -11,7 +11,6 @@
   },
   "enabledPlugins": {
     "caveman@caveman": true,
-    "dspy-agent-skills@dspy-agent-skills": true,
     "compound-engineering@compound-engineering-plugin": true,
     "frontend-design@claude-plugins-official": true,
     "context7@claude-plugins-official": true,
@@ -20,8 +19,7 @@
     "claude-md-management@claude-plugins-official": true,
     "pyright-lsp@claude-plugins-official": true,
     "chrome-devtools-mcp@claude-plugins-official": true,
-    "linear@claude-plugins-official": true,
-    "reverse-engineering@claude-code-workflows": true
+    "linear@claude-plugins-official": true
   },
   "extraKnownMarketplaces": {
     "caveman": {
@@ -31,25 +29,12 @@
       },
       "autoUpdate": true
     },
-    "dspy-agent-skills": {
-      "source": {
-        "source": "github",
-        "repo": "intertwine/dspy-agent-skills"
-      },
-      "autoUpdate": true
-    },
     "compound-engineering-plugin": {
       "source": {
         "source": "github",
         "repo": "EveryInc/compound-engineering-plugin"
       },
       "autoUpdate": true
-    },
-    "claude-code-workflows": {
-      "source": {
-        "source": "github",
-        "repo": "wshobson/agents"
-      }
     }
   },
   "effortLevel": "xhigh",
