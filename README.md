@@ -77,6 +77,19 @@ This repo uses `chezmoi`-style naming:
 
 ## Apply notes
 
+### Source directory
+
+`chezmoi` defaults to `~/.local/share/chezmoi`. If this repo is cloned somewhere
+else, point chezmoi at it explicitly in `~/.config/chezmoi/chezmoi.toml`:
+
+```toml
+sourceDir = "/path/to/this/repo"
+```
+
+Without that, a `chezmoi init` clone in the default location keeps shadowing the
+working clone, and `chezmoi apply` silently replays whatever commit that stale
+copy sits on. Verify with `chezmoi source-path` before trusting an apply.
+
 ### On Omarchy / Linux
 Use this repo as the source for:
 - `~/.local/share/omarchy/default/bash/*`
