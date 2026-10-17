@@ -35,6 +35,13 @@
         "repo": "EveryInc/compound-engineering-plugin"
       },
       "autoUpdate": true
+    },
+    "claude-plugins-official": {
+      "source": {
+        "source": "github",
+        "repo": "anthropics/claude-plugins-official"
+      },
+      "autoUpdate": true
     }
   },
   "effortLevel": "xhigh",
