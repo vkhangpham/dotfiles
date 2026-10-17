@@ -182,40 +182,7 @@ ReadApp(key) {
     return {
         Name: Trim(parts[1]),
         Criteria: Trim(parts[2]),
-        Command: ExpandEnv(Trim(parts[3])),
-        Tab: parts.Length >= 4 ? Trim(parts[4]) : ""
-    }
-}
-
-; Focus the browser window (the focused one, else the most recent) and find a tab
-; through the browser's tab search (Ctrl+Shift+A in Brave and Chrome), which
-; matches web addresses. The search popup has no title; if it is still focused
-; after Enter, no tab matched, so close it and open the address in a new tab.
-FocusBrowserTab(windows, address) {
-    target := windows[1]
-    for hwnd in windows
-        if hwnd = WinExist("A")
-            target := hwnd
-    try {
-        if WinGetMinMax(target) = -1
-            WinRestore(target)
-        WinActivate(target)
-        if !WinWaitActive(target, , 1)
-            return
-        Send("^+a")
-        Sleep(400)
-        SendText(address)
-        Sleep(300)
-        Send("{Enter}")
-        Sleep(400)
-        if WinGetTitle("A") = "" {
-            Send("{Escape}")
-            Sleep(150)
-            Send("^t")
-            Sleep(150)
-            SendText("https://" . address)
-            Send("{Enter}")
-        }
+        Command: ExpandEnv(Trim(parts[3]))
     }
 }
 
@@ -239,10 +206,6 @@ SwitchMappedApp(key, *) {
             Notify("Invalid window criteria for " . app.Name . ": " . err.Message)
             return
         }
-        if windows.Length && app.Tab != "" {
-            FocusBrowserTab(windows, app.Tab)
-            return
-        }
         if windows.Length {
             CycleWindows(windows)
             return
@@ -255,7 +218,7 @@ SwitchMappedApp(key, *) {
 
         try {
             Run(app.Command)
-            hwnd := WinWait(app.Criteria, , 5)
+            hwnd := WinWait(app.Criteria, , 15)
             if hwnd
                 WinActivate(hwnd)
             else

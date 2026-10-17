@@ -66,9 +66,6 @@ To remove only the startup shortcut:
   the local `apps.ini`; copy the result back into the repo when it is worth
   sharing across Windows machines.
 - Right Alt+0 jumps to the app used before this one; press again to jump back.
-- A mapping may end in `|address`. Right Alt+9 focuses Brave and finds a
-  `github.com` tab through Brave's tab search (Ctrl+Shift+A), or opens one in a
-  new tab when none is open.
 - An unmapped Right Alt+key cycles running apps whose process starts with that
   letter.
 - The right Command key on a Mac-style keyboard reports as Right Win on Windows,
