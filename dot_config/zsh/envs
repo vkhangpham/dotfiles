@@ -21,6 +21,13 @@ fi
 # Prefer sharp prebuilt binaries over Homebrew libvips source builds.
 export SHARP_IGNORE_GLOBAL_LIBVIPS=1
 
+# ~/.ssh/config sets "AddKeysToAgent yes", which needs an agent to talk to.
+# macOS runs one via launchd and already exports SSH_AUTH_SOCK, so only Linux
+# needs pointing at the systemd --user ssh-agent.service unit.
+if [[ "$OSTYPE" != darwin* ]] && [[ -z "${SSH_AUTH_SOCK:-}" ]] && [[ -n "${XDG_RUNTIME_DIR:-}" ]]; then
+  export SSH_AUTH_SOCK="$XDG_RUNTIME_DIR/ssh-agent.socket"
+fi
+
 # Optional local secrets. Keep values out of the repo.
 if [[ -f "$HOME/.credentials/.env" ]]; then
   setopt allexport
