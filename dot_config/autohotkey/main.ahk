@@ -15,6 +15,8 @@ global ScrollSteps := Max(1, IniRead(SettingsIni, "scroll", "steps", "7") + 0)
 global ScrollDelayMs := Max(0, IniRead(SettingsIni, "scroll", "delay_ms", "4") + 0)
 global TerminalModifierSwap := ReadBool("features", "terminal_modifier_swap", true)
 global LCtrlAsWin := false   ; true while the held left Ctrl has turned into Win
+global Leader := ""          ; the InputHook while wait mode is on
+global LeaderStart := 0      ; A_TickCount of the tap that started it
 
 ; Processes that count as a terminal for the Cmd-style swap below. The macOS half
 ; of this repo uses Ghostty, which has no Windows build, so Windows Terminal is
@@ -42,9 +44,26 @@ $CapsLock::Send("{Escape}")
 
 ; The right Command key on a Mac-style keyboard reports as Right Win on Windows.
 ; Remap it to Right Alt, which is what drives the >! app-switcher hotkeys below.
-; A lone tap becomes a harmless Right Alt. This does not stop Right Win+L from
-; locking the machine, so the Linear key needs the Win+L fix in README.md.
-RWin::RAlt
+; A lone tap starts wait mode and a double tap opens Search (StartLeader); vkE8
+; masks the Alt so no menu bar opens. This does not stop Right Win+L from locking the machine, so the Linear
+; key needs the Win+L fix in README.md.
+*RWin::Send("{Blind}{RAlt down}")
+*RWin up:: {
+    Send("{Blind}{vkE8}{RAlt up}")
+    if A_PriorKey = "RWin"
+        StartLeader()
+}
+; A keyboard with a real Right Alt gets the same lone-tap wait mode. The vkE8 on
+; press keeps a lone tap from opening the app's menu bar.
+~*RAlt::Send("{Blind}{vkE8}")
+~*RAlt up:: {
+    if A_PriorKey = "RAlt"
+        StartLeader()
+}
+; A click ends wait mode, so a forgotten tap does not eat a later key.
+~*LButton::StopLeader()
+~*RButton::StopLeader()
+~*MButton::StopLeader()
 
 ; macOS-style Command key, swapped with the left Ctrl key. On the Mac layout the
 ; Command key sits where the Windows key sits (right of Alt) and is the primary
@@ -206,22 +225,110 @@ ReadBool(section, key, defaultValue) {
     return value = "1" || value = "true" || value = "yes" || value = "on"
 }
 
-RegisterAppHotkeys() {
-    ; Right Alt+0 jumps back to the previous app instead of a mapping.
-    Hotkey(">!0", SwitchToPreviousApp)
-    Hotkey(">!+0", SwitchToPreviousApp)
-
-    keys := "abcdefghijklmnopqrstuvwxyz123456789"
-    Loop Parse, keys {
-        key := A_LoopField
-        ; Right Alt is the app-switcher trigger: it sits where the Mac right
-        ; Command key does, so Right Alt+key mirrors the macOS "rcmd" switcher.
-        ; Add Ctrl (Right Alt+Ctrl+key) to assign the focused app to a key.
-        Hotkey(">!" . key, SwitchMappedApp.Bind(key))
-        Hotkey(">!+" . key, SwitchMappedApp.Bind(key))
-        Hotkey("^>!" . key, AssignActiveApp.Bind(key))
-        Hotkey("^>!+" . key, AssignActiveApp.Bind(key))
+; Hotkey key -> apps.ini key. An ini line cannot start with ";", so the two
+; punctuation keys go by name. Scan codes keep them layout-proof.
+AppKeyName(hotkeyKey) {
+    switch hotkeyKey {
+        case "sc027": return "semicolon"
+        case "sc028": return "quote"
     }
+    return hotkeyKey
+}
+
+RegisterAppHotkeys() {
+    ; Right Alt is the app-switcher trigger: it sits where the Mac right
+    ; Command key does, so Right Alt+key mirrors the macOS "rcmd" switcher.
+    ; Add Ctrl (Right Alt+Ctrl+key) to assign the focused app to a key.
+    Hotkey(">!Enter", SwitchToPreviousApp)
+    Hotkey(">!+Enter", SwitchToPreviousApp)
+
+    Loop 9 {
+        Hotkey(">!" . A_Index, JumpToTab.Bind(A_Index))
+        Hotkey(">!+" . A_Index, JumpToTab.Bind(A_Index))
+    }
+
+    keys := ["sc027", "sc028"]
+    Loop Parse, "abcdefghijklmnopqrstuvwxyz"
+        keys.Push(A_LoopField)
+    for key in keys {
+        name := AppKeyName(key)
+        Hotkey(">!" . key, SwitchMappedApp.Bind(name))
+        Hotkey(">!+" . key, SwitchMappedApp.Bind(name))
+        Hotkey("^>!" . key, AssignActiveApp.Bind(name))
+        Hotkey("^>!+" . key, AssignActiveApp.Bind(name))
+    }
+}
+
+; Wait mode: a lone Right Alt tap waits for the next key, with no time limit,
+; and runs it as Right Alt+key. A key with no action, Escape, a click or a
+; second tap ends it, and the key is dropped. A key pressed with Ctrl, Alt or
+; Win goes through, so Ctrl+C still copies. A second tap within 400 ms opens
+; Windows Search.
+;
+; The hook suppresses every key until the callback has read it, so a fast key
+; never reaches the app first.
+StartLeader() {
+    global Leader, LeaderStart
+    if Leader {
+        quick := A_TickCount - LeaderStart < 400
+        StopLeader()
+        if quick
+            Send("#s")
+        return
+    }
+    ih := InputHook("L0")
+    ih.KeyOpt("{All}", "NS")
+    ih.KeyOpt("{LShift}{RShift}{LCtrl}{RCtrl}{LAlt}{RAlt}{LWin}{RWin}", "-N-S")
+    ih.OnKeyDown := LeaderKey
+    Leader := ih
+    LeaderStart := A_TickCount
+    ih.Start()
+}
+
+StopLeader(*) {
+    global Leader
+    if !Leader
+        return
+    ih := Leader
+    Leader := ""
+    ih.Stop()
+}
+
+LeaderKey(ih, vk, sc) {
+    global Leader
+    keyName := Format("vk{:X}sc{:03X}", vk, sc)
+    ; The hook held this key before the wait ended, so it belongs to the app.
+    if Leader != ih
+        return Send("{Blind}{" . keyName . "}")
+    StopLeader()
+    if GetKeyState("Ctrl") || GetKeyState("LAlt") || GetKeyState("LWin") || GetKeyState("RWin")
+        return Send("{Blind}{" . keyName . "}")
+    if sc = 0x1C                                     ; Enter
+        return SwitchToPreviousApp()
+    if sc >= 0x02 && sc <= 0x0A                      ; 1-9 on the top row
+        return JumpToTab(sc - 1)
+    key := sc = 0x27 ? "semicolon" : sc = 0x28 ? "quote" : StrLower(GetKeyName(keyName))
+    if RegExMatch(key, "^([a-z]|semicolon|quote)$") && ReadApp(key)
+        SwitchMappedApp(key)
+}
+
+; Right Alt+1-9 brings Brave (the "quote" app) to the front on tab N; 9 is the
+; last tab. It never cycles Brave windows, so the tab lands in the window in use.
+JumpToTab(n, *) {
+    app := ReadApp("quote")
+    if !app
+        return
+    if !WinActive(app.Criteria) {
+        hwnd := WinExist(app.Criteria)
+        if !hwnd
+            return SwitchMappedApp("quote")
+        if WinGetMinMax(hwnd) = -1
+            WinRestore(hwnd)
+        WinActivate(hwnd)
+        if !WinWaitActive(hwnd, , 1)
+            return
+    }
+    Send("^" . n)
 }
 
 ReadApp(key) {

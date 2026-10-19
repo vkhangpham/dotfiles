@@ -61,26 +61,32 @@ To remove only the startup shortcut:
   sends SIGINT.
 - Caps Lock sends Escape.
 - Escape sends Caps Lock (Wispr Flow push-to-talk) and leaves Caps Lock off.
-- Right Alt+letter/number switches to or launches the app in `apps.ini`. Right
-  Alt sits where the macOS right Command key does, mirroring the "rcmd" switcher.
-- Right Alt+Shift+letter/number does the same thing.
-- Right Alt+Ctrl+letter/number assigns the focused app to that key. This updates
-  the local `apps.ini`; copy the result back into the repo when it is worth
-  sharing across Windows machines.
-- Right Alt+0 jumps to the app used before this one; press again to jump back.
-- An unmapped Right Alt+key cycles running apps whose process starts with that
-  letter.
+- Right Alt+letter switches to or launches the app in `apps.ini`. Right Alt
+  sits where the macOS right Command key does, mirroring the "rcmd" switcher.
+  Right Alt+; is Slack, Right Alt+' is Brave.
+- Right Alt+Shift+key does the same thing.
+- Right Alt+Ctrl+key assigns the focused app to that key. This updates the local
+  `apps.ini`; copy the result back into the repo when it is worth sharing across
+  Windows machines.
+- Right Alt+Enter jumps to the app used before this one; press again to jump back.
+- Right Alt+1-9 brings Brave to the front on tab N (9 is the last tab), so the
+  tab order is the key order.
+- An unmapped Right Alt+letter cycles running apps whose process starts with
+  that letter.
+- Wait mode: tap Right Alt on its own, then press the key whenever. A key with
+  no action, Escape, a click, or a second Right Alt tap ends it. Ctrl/Alt/Win
+  combos pass through, so Ctrl+C still copies.
+- Double tap Right Alt opens Windows Search.
 - The right Command key on a Mac-style keyboard reports as Right Win on Windows,
-  so it is remapped to Right Alt — that is what drives the switcher above. A lone
-  tap acts like a normal Alt.
+  so it is remapped to Right Alt — that is what drives the switcher above.
 
 The seeded app commands are best-effort executable names. Windows Store apps,
 portable installs, and differently named executables may need reassignment with
 Right Win+Alt+key or a manual edit to `apps.ini`.
 
 There is no Ghostty build for Windows, so the two keys that open the main
-terminal on macOS (`0` and `m`) are mapped to Windows Terminal on the `archlinux`
-WSL profile. `p` stays on the PowerShell profile of the same app.
+terminal on macOS is mapped to Windows Terminal on the `archlinux` WSL profile
+(`m`).
 
 ## Win+L still locks the machine
 
