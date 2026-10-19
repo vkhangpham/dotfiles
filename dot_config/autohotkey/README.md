@@ -27,14 +27,17 @@ To remove only the startup shortcut:
 
 ## Key behavior
 
-- The left Win key and the left Ctrl key are swapped. Win acts as the macOS
-  Command key — it sends Ctrl for every combo, so Win+C copies, Win+V pastes,
-  Win+A selects all, everywhere — which matches the Mac layout where Command sits
-  where the Windows key sits. Ctrl sends Win in return, so there is still a real
-  Windows key on the board for the Start menu, Win+Tab, Win+arrow snapping, and
-  the search binding below. Alt is untouched (opt=alt). Right Ctrl, and any other
-  keyboard, still send a plain Ctrl. A lone Ctrl tap now opens the Start menu, the
-  way a real Win key does, while a lone Win tap does nothing, like Cmd.
+- The left modifiers follow the Mac order. Both keyboards in use (laptop: Ctrl Fn
+  Win Alt; Lofree in Windows mode: Ctrl Win Alt) put Alt next to the space bar,
+  where Command sits on a Mac. So the left Alt key is the Command key -- it sends
+  Ctrl for every combo, so Cmd+C copies, Cmd+V pastes, everywhere. The left Win
+  key takes over Alt (opt). The left Ctrl key sends Win, so there is still a real
+  Windows key for the Start menu, Win+Tab, Win+arrow snapping, and the search
+  binding below. A lone Ctrl tap opens Start. The Ctrl key turns into Win only
+  when the next key lands while it is physically held; a Ctrl sent by another
+  program (Wispr Flow's Ctrl+V paste) passes as Ctrl. Right Ctrl, and any other
+  keyboard, still send a plain Ctrl. Set the Lofree to Windows mode: in Mac mode
+  its Cmd keys report as Win, and Win+L locks the machine.
 - Ctrl+Space opens Windows Search, standing in for Spotlight. Ctrl sends Win, so
   the keystroke arrives as Win+Space (natively an input-language cycle, unused
   here) and the script turns it into a real Win+S.
@@ -57,8 +60,7 @@ To remove only the startup shortcut:
   the shell when nothing is selected, so Win+C copies and a bare Ctrl+C still
   sends SIGINT.
 - Caps Lock sends Escape.
-- Escape sends the backtick key; Shift+Escape sends tilde.
-- Win+Escape and Win+Shift+Escape preserve the modifier while sending backtick.
+- Escape sends Caps Lock (Wispr Flow push-to-talk) and leaves Caps Lock off.
 - Right Alt+letter/number switches to or launches the app in `apps.ini`. Right
   Alt sits where the macOS right Command key does, mirroring the "rcmd" switcher.
 - Right Alt+Shift+letter/number does the same thing.
@@ -81,6 +83,9 @@ terminal on macOS (`0` and `m`) are mapped to Windows Terminal on the `archlinux
 WSL profile. `p` stays on the PowerShell profile of the same app.
 
 ## Win+L still locks the machine
+
+The Cmd key is now a physical Alt, so Cmd+L no longer locks. This section
+applies only to a keyboard whose Cmd key reports as Win (a Mac-mode keyboard).
 
 Windows handles Win+L below the keyboard hook AutoHotkey installs, so the Win key
 remap cannot stop it: pressing the Cmd key with `L` locks the workstation even
@@ -115,7 +120,8 @@ Reboot. The Cmd key becomes a real Ctrl and the Ctrl key a real Win before any
 hook runs, so Win+L can never fire from the Cmd key, and Win+L from the Ctrl key
 still locks the machine on purpose. This applies to every attached keyboard and
 every user on the machine. It also replaces the script's own remap, so
-`LWin::LCtrl` and `LCtrl::LWin` in `main.ahk` must be deleted, and with them the
+`LWin::LCtrl` and the left Ctrl handling (`RegisterLCtrlAsWin`, `LCtrlRelease`)
+in `main.ahk` must be deleted, and with them the
 `terminal_modifier_swap` feature: the driver rewrites the scancode, so the script
 can no longer tell a Cmd press from a Ctrl press. Undo with
 `Remove-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Keyboard Layout' -Name 'Scancode Map'`
