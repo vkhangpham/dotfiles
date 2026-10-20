@@ -36,7 +36,7 @@ To remove only the startup shortcut:
   binding below. A lone Ctrl tap opens Start. The Ctrl key turns into Win only
   when the next key lands while it is physically held; a Ctrl sent by another
   program (Wispr Flow's Ctrl+V paste) passes as Ctrl. Right Ctrl, and any other
-  keyboard, still send a plain Ctrl. Set the Lofree to Windows mode: in Mac mode
+  keyboard, still send a plain Ctrl. Set the Lofree to Windows mode with Fn+N (Fn+M goes back to Mac): in Mac mode
   its Cmd keys report as Win, and Win+L locks the machine.
 - Ctrl+Space opens Windows Search, standing in for Spotlight. Ctrl sends Win, so
   the keystroke arrives as Win+Space (natively an input-language cycle, unused
