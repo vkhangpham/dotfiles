@@ -69,6 +69,8 @@ To remove only the startup shortcut:
   focuses the window that way; hold Right Alt+arrow moves the window that way.
   Right Alt+Space takes the window out of the grid (floating) and back; Right
   Alt+Backspace minimizes it so the rest re-tile.
+  Win (the left Ctrl key) + 1-9 switches desktop; add Shift to send the window
+  there and follow it.
   The script starts it from `~/.local/glazewm`, unpacked from the official MSI
   with `msiexec /a` since this machine has no admin.
 - Right Alt+V opens Raycast's clipboard history.

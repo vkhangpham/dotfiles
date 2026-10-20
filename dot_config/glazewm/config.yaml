@@ -1,5 +1,6 @@
 # GlazeWM tiles windows. Its keys live in ../autohotkey/main.ahk, which calls the
-# glazewm CLI: tap Right Alt then an arrow focuses, hold Right Alt+arrow moves.
+# glazewm CLI: tap Right Alt then an arrow focuses, hold Right Alt+arrow moves,
+# and the Win key (left Ctrl key) + 1-9 switches desktop, + Shift sends the window.
 general:
   startup_commands: []
   shutdown_commands: []
@@ -43,6 +44,14 @@ window_behavior:
 
 workspaces:
   - name: '1'
+  - name: '2'
+  - name: '3'
+  - name: '4'
+  - name: '5'
+  - name: '6'
+  - name: '7'
+  - name: '8'
+  - name: '9'
 
 window_rules:
   - commands: ['ignore']

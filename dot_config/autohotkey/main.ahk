@@ -167,6 +167,16 @@ RegisterLCtrlAsWin() {
 
 LCtrlAsWinKey(key, *) {
     global LCtrlAsWin
+    ; Win+1-9 switches GlazeWM desktop; Win+Shift+1-9 sends the window there and
+    ; follows it, as Hyprland's SUPER keys do.
+    if key ~= "^[1-9]$" && ProcessExist("glazewm.exe") {
+        if !LCtrlAsWin
+            Send("{Blind}{LCtrl up}")
+        if GetKeyState("Shift")
+            Glaze("move --workspace " . key, true)
+        Glaze("focus --workspace " . key)
+        return
+    }
     if !LCtrlAsWin {
         LCtrlAsWin := true
         Send("{Blind}{LCtrl up}{LWin down}")
@@ -186,9 +196,10 @@ StartGlaze() {
         Run(Format('"{1}" start --config "{2}"', wm, GlazeConfig), , "Hide")
 }
 
-Glaze(command, *) {
+Glaze(command, wait := false, *) {
     global GlazeDir
-    Run(Format('"{1}\cli\glazewm.exe" command {2}', GlazeDir, command), , "Hide")
+    cmd := Format('"{1}\cli\glazewm.exe" command {2}', GlazeDir, command)
+    wait ? RunWait(cmd, , "Hide") : Run(cmd, , "Hide")
 }
 
 ; A lone tap of the left Ctrl key opens Start, as a Win tap would.
@@ -232,7 +243,7 @@ RegisterAppHotkeys() {
     Hotkey(">!Enter", SwitchToPreviousApp)
     Hotkey(">!+Enter", SwitchToPreviousApp)
     for dir in ["Left", "Right", "Up", "Down"]
-        Hotkey(">!" . dir, Glaze.Bind("move --direction " . StrLower(dir)))
+        Hotkey(">!" . dir, Glaze.Bind("move --direction " . StrLower(dir), false))
 
     Loop 9 {
         Hotkey(">!" . A_Index, JumpToTab.Bind(A_Index))
@@ -256,8 +267,8 @@ KeyActions() {
     static actions := Map(
         "v", OpenClipboardHistory,
         "c", Capture,
-        "Space", Glaze.Bind("toggle-floating --centered"),   ; out of the grid and back
-        "Backspace", Glaze.Bind("toggle-minimized"))         ; the rest re-tile
+        "Space", Glaze.Bind("toggle-floating --centered", false),   ; out of the grid and back
+        "Backspace", Glaze.Bind("toggle-minimized", false))         ; the rest re-tile
     return actions
 }
 
