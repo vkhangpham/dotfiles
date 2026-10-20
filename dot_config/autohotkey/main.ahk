@@ -193,8 +193,61 @@ LCtrlAsWinKey(key, *) {
 StartGlaze() {
     global GlazeDir, GlazeConfig
     wm := GlazeDir . "\glazewm.exe"
-    if FileExist(wm) && FileExist(GlazeConfig) && !ProcessExist("glazewm.exe")
+    if FileExist(wm) && FileExist(GlazeConfig) && !GlazePid()
         Run(Format('"{1}" start --config "{2}"', wm, GlazeConfig), , "Hide")
+}
+
+; GlazeWM can lose its IPC server and stop tiling while the process lives on
+; (errors.log: "No common ancestor between containers"). Every 30 s, ask it a
+; query; after two failed asks in a row, kill it and start it again.
+global GlazeMisses := 0
+SetTimer(HealGlaze, 30000)
+
+HealGlaze() {
+    global GlazeDir, GlazeMisses
+    if !FileExist(GlazeDir . "\glazewm.exe")
+        return
+    if !GlazePid() {
+        GlazeMisses := 0
+        StartGlaze()
+        return
+    }
+    ; Run, not RunWait: a frozen GlazeWM would leave the query, and this script's
+    ; hotkeys, waiting for good. Kill a query still running after 5 s.
+    Run(Format('"{1}\cli\glazewm.exe" query focused', GlazeDir), , "Hide", &pid)
+    h := DllCall("OpenProcess", "UInt", 0x101000, "Int", 0, "UInt", pid, "Ptr")  ; SYNCHRONIZE | QUERY_LIMITED_INFORMATION
+    code := 1
+    if !h
+        return                                  ; already gone; ask again next tick
+    if DllCall("WaitForSingleObject", "Ptr", h, "UInt", 5000) = 0
+        DllCall("GetExitCodeProcess", "Ptr", h, "UInt*", &code)
+    else
+        ProcessClose(pid)
+    DllCall("CloseHandle", "Ptr", h)
+    if code = 0 {
+        GlazeMisses := 0
+        return
+    }
+    if ++GlazeMisses < 2
+        return
+    GlazeMisses := 0
+    if pid := GlazePid() {
+        ProcessClose(pid)
+        ProcessWaitClose(pid, 5)
+    }
+    StartGlaze()
+    TrayTip("GlazeWM stopped answering and was restarted", "AutoHotkey")
+}
+
+; The PID of the window manager itself. The CLI is also named glazewm.exe, so
+; match on the full path.
+GlazePid() {
+    global GlazeDir
+    wm := GlazeDir . "\glazewm.exe"
+    for p in ComObjGet("winmgmts:").ExecQuery("SELECT ProcessId, ExecutablePath FROM Win32_Process WHERE Name = 'glazewm.exe'")
+        if p.ExecutablePath = wm
+            return p.ProcessId
+    return 0
 }
 
 Glaze(command, wait := false, *) {
