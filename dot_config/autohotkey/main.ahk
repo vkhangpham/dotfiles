@@ -244,6 +244,13 @@ RegisterAppHotkeys() {
         Hotkey("^>!" . key, AssignActiveApp.Bind(key))
         Hotkey("^>!+" . key, AssignActiveApp.Bind(key))
     }
+    ; V opens Raycast's clipboard history instead of an app.
+    Hotkey(">!v", OpenClipboardHistory)
+    Hotkey(">!+v", OpenClipboardHistory)
+}
+
+OpenClipboardHistory(*) {
+    Run("raycast://extensions/raycast/clipboard-history/clipboard-history")
 }
 
 ; Wait mode: a lone Right Alt tap waits for the next key, with no time limit,
@@ -292,6 +299,8 @@ LeaderKey(ih, vk, sc) {
         return Send("{Blind}{" . keyName . "}")
     if sc = 0x1C                                     ; Enter
         return SwitchToPreviousApp()
+    if sc = 0x2F                                     ; V
+        return OpenClipboardHistory()
     if sc >= 0x02 && sc <= 0x0A                      ; 1-9 on the top row
         return JumpToTab(sc - 1)
     key := StrLower(GetKeyName(keyName))

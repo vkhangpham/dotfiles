@@ -77,6 +77,7 @@ To remove only the startup shortcut:
   no action, Escape, a click, or a second Right Alt tap ends it. Ctrl/Alt/Win
   combos pass through, so Ctrl+C still copies.
 - Double tap Right Alt opens Raycast.
+- Right Alt+V opens Raycast's clipboard history.
 - The right Command key on a Mac-style keyboard reports as Right Win on Windows,
   so it is remapped to Right Alt — that is what drives the switcher above.
 
