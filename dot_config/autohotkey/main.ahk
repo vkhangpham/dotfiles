@@ -299,16 +299,16 @@ LeaderKey(ih, vk, sc) {
         SwitchMappedApp(key)
 }
 
-; Right Alt+1-9 brings Brave (the "b" app) to the front on tab N; 9 is the
+; Right Alt+1-9 brings Brave (the "a" app) to the front on tab N; 9 is the
 ; last tab. It never cycles Brave windows, so the tab lands in the window in use.
 JumpToTab(n, *) {
-    app := ReadApp("b")
+    app := ReadApp("a")
     if !app
         return
     if !WinActive(app.Criteria) {
         hwnd := WinExist(app.Criteria)
         if !hwnd
-            return SwitchMappedApp("b")
+            return SwitchMappedApp("a")
         if WinGetMinMax(hwnd) = -1
             WinRestore(hwnd)
         WinActivate(hwnd)

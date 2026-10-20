@@ -63,7 +63,7 @@ To remove only the startup shortcut:
 - Escape sends Caps Lock (Wispr Flow push-to-talk) and leaves Caps Lock off.
 - Right Alt+letter switches to or launches the app in `apps.ini`. Right Alt
   sits where the macOS right Command key does, mirroring the "rcmd" switcher.
-  Right Alt+S is Slack, Right Alt+B is Brave.
+  Right Alt+S is Slack, Right Alt+A is Brave.
 - Right Alt+Shift+key does the same thing.
 - Right Alt+Ctrl+key assigns the focused app to that key. This updates the local
   `apps.ini`; copy the result back into the repo when it is worth sharing across
