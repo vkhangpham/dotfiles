@@ -41,7 +41,9 @@ To remove only the startup shortcut:
 - Ctrl+Space opens Windows Search, standing in for Spotlight. Ctrl sends Win, so
   the keystroke arrives as Win+Space (natively an input-language cycle, unused
   here) and the script turns it into a real Win+S.
-- Cmd+Shift+C opens the Windows screen snip. Cmd sends Ctrl, so it arrives as
+- Cmd+Shift+C opens a ShareX region capture: copied and saved to
+  Documents/ShareX, never uploaded (ShareX's `ApplicationConfig.json`). Without
+  ShareX it falls back to the Windows snip. Cmd sends Ctrl, so it arrives as
   Ctrl+Shift+C. It is off inside a terminal, where Ctrl+Shift+C is the app's
   own copy.
 - Inside a terminal, Cmd-style Win combos that the terminal puts on
@@ -68,6 +70,10 @@ To remove only the startup shortcut:
   no action, Escape, a click, or a second Right Alt tap ends it. Ctrl/Alt/Win
   combos pass through, so Ctrl+C still copies.
 - Double tap Right Alt opens Raycast.
+- GlazeWM tiles windows (`../glazewm/config.yaml`). Tap Right Alt then an arrow
+  focuses the window that way; hold Right Alt+arrow moves the window that way.
+  The script starts it from `~/.local/glazewm`, unpacked from the official MSI
+  with `msiexec /a` since this machine has no admin.
 - Right Alt+V opens Raycast's clipboard history.
 - The right Command key on a Mac-style keyboard reports as Right Win on Windows,
   so it is remapped to Right Alt — that is what drives the switcher above.

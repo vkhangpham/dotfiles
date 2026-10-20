@@ -17,6 +17,9 @@ global TerminalModifierSwap := ReadBool("features", "terminal_modifier_swap", tr
 global LCtrlAsWin := false   ; true while the held left Ctrl has turned into Win
 global Leader := ""          ; the InputHook while wait mode is on
 global LeaderStart := 0      ; A_TickCount of the tap that started it
+global GlazeDir := EnvGet("USERPROFILE") . "\.local\glazewm"
+global GlazeConfig := EnvGet("USERPROFILE") . "\.config\glazewm\config.yaml"
+global ShareX := EnvGet("LOCALAPPDATA") . "\Programs\ShareX\ShareX.exe"
 
 ; Processes that count as a terminal for the Cmd-style swap below. The macOS half
 ; of this repo uses Ghostty, which has no Windows build, so Windows Terminal is
@@ -27,6 +30,7 @@ global TerminalProcesses := BuildTerminalProcesses()
 RegisterAppHotkeys()
 RegisterScrollHotkeys()
 RegisterLCtrlAsWin()
+StartGlaze()
 
 ; CapsLock and Escape swap. Both use the keyboard hook ($ and *), which ignores
 ; keystrokes the script sends itself, so neither re-triggers the other.
@@ -97,10 +101,12 @@ LAlt::LCtrl
 LWin::LAlt
 ~*LCtrl up::LCtrlRelease()
 
-; Screen snip on Cmd+Shift+C. The Cmd key sends Ctrl, so it arrives as
-; Ctrl+Shift+C. Off inside a terminal, where Ctrl+Shift+C is the app's copy.
+; ShareX region capture on Cmd+Shift+C, copied and saved, never uploaded (set in
+; ShareX's ApplicationConfig.json). The Windows snip stands in when ShareX is not
+; installed. The Cmd key sends Ctrl, so it arrives as Ctrl+Shift+C. Off inside a
+; terminal, where Ctrl+Shift+C is the app's copy.
 #HotIf !TerminalActive()
-^+c::Run("ms-screenclip:")
+^+c::Run(FileExist(ShareX) ? '"' . ShareX . '" -RectangleRegion' : "ms-screenclip:")
 #HotIf
 
 ; Spotlight-style search on the Ctrl key. Ctrl now sends Win, so the keystroke
@@ -177,6 +183,22 @@ LCtrlAsWinKey(key, *) {
     Send("{Blind}{" (key = "Space" ? "s" : key) "}")
 }
 
+; GlazeWM tiles windows. Start it with the script when it is unpacked in
+; ~/.local/glazewm. Its own keys are off (config.yaml); the script drives it
+; through the CLI: tap Right Alt then an arrow focuses that way, hold Right
+; Alt+arrow moves the window that way. The CLI talks to 127.0.0.1:6123.
+StartGlaze() {
+    global GlazeDir, GlazeConfig
+    wm := GlazeDir . "\glazewm.exe"
+    if FileExist(wm) && FileExist(GlazeConfig) && !ProcessExist("glazewm.exe")
+        Run(Format('"{1}" start --config "{2}"', wm, GlazeConfig), , "Hide")
+}
+
+Glaze(command, *) {
+    global GlazeDir
+    Run(Format('"{1}\cli\glazewm.exe" command {2}', GlazeDir, command), , "Hide")
+}
+
 ; A lone tap of the left Ctrl key opens Start, as a Win tap would.
 LCtrlRelease() {
     global LCtrlAsWin
@@ -217,6 +239,8 @@ RegisterAppHotkeys() {
     ; Command key does, so Right Alt+key mirrors the macOS "rcmd" switcher.
     Hotkey(">!Enter", SwitchToPreviousApp)
     Hotkey(">!+Enter", SwitchToPreviousApp)
+    for dir in ["Left", "Right", "Up", "Down"]
+        Hotkey(">!" . dir, Glaze.Bind("move --direction " . StrLower(dir)))
 
     Loop 9 {
         Hotkey(">!" . A_Index, JumpToTab.Bind(A_Index))
@@ -283,6 +307,9 @@ LeaderKey(ih, vk, sc) {
         return Send("{Blind}{" . keyName . "}")
     if sc = 0x1C                                     ; Enter
         return SwitchToPreviousApp()
+    name := GetKeyName(keyName)
+    if name ~= "^(Left|Right|Up|Down)$"
+        return Glaze("focus --direction " . StrLower(name))
     if sc = 0x2F                                     ; V
         return OpenClipboardHistory()
     if sc >= 0x02 && sc <= 0x0A                      ; 1-9 on the top row
