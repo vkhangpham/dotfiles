@@ -10,7 +10,9 @@ general:
   cursor_jump:
     enabled: true
     trigger: 'window_focus'
-  hide_method: 'cloak'
+  # 'hide', not 'cloak': after a crash, GlazeWM's watcher and glaze-heal.ahk can
+  # show a hidden window again, but nothing they run removes a cloak.
+  hide_method: 'hide'
   show_all_in_taskbar: false
 
 gaps:
