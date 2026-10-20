@@ -44,7 +44,7 @@ $CapsLock::Send("{Escape}")
 
 ; The right Command key on a Mac-style keyboard reports as Right Win on Windows.
 ; Remap it to Right Alt, which is what drives the >! app-switcher hotkeys below.
-; A lone tap starts wait mode and a double tap opens Search (StartLeader); vkE8
+; A lone tap starts wait mode and a double tap opens Raycast (StartLeader); vkE8
 ; masks the Alt so no menu bar opens. This does not stop Right Win+L from locking the machine, so the Linear
 ; key needs the Win+L fix in README.md.
 *RWin::Send("{Blind}{RAlt down}")
@@ -225,16 +225,6 @@ ReadBool(section, key, defaultValue) {
     return value = "1" || value = "true" || value = "yes" || value = "on"
 }
 
-; Hotkey key -> apps.ini key. An ini line cannot start with ";", so the two
-; punctuation keys go by name. Scan codes keep them layout-proof.
-AppKeyName(hotkeyKey) {
-    switch hotkeyKey {
-        case "sc027": return "semicolon"
-        case "sc028": return "quote"
-    }
-    return hotkeyKey
-}
-
 RegisterAppHotkeys() {
     ; Right Alt is the app-switcher trigger: it sits where the Mac right
     ; Command key does, so Right Alt+key mirrors the macOS "rcmd" switcher.
@@ -247,15 +237,12 @@ RegisterAppHotkeys() {
         Hotkey(">!+" . A_Index, JumpToTab.Bind(A_Index))
     }
 
-    keys := ["sc027", "sc028"]
-    Loop Parse, "abcdefghijklmnopqrstuvwxyz"
-        keys.Push(A_LoopField)
-    for key in keys {
-        name := AppKeyName(key)
-        Hotkey(">!" . key, SwitchMappedApp.Bind(name))
-        Hotkey(">!+" . key, SwitchMappedApp.Bind(name))
-        Hotkey("^>!" . key, AssignActiveApp.Bind(name))
-        Hotkey("^>!+" . key, AssignActiveApp.Bind(name))
+    Loop Parse, "abcdefghijklmnopqrstuvwxyz" {
+        key := A_LoopField
+        Hotkey(">!" . key, SwitchMappedApp.Bind(key))
+        Hotkey(">!+" . key, SwitchMappedApp.Bind(key))
+        Hotkey("^>!" . key, AssignActiveApp.Bind(key))
+        Hotkey("^>!+" . key, AssignActiveApp.Bind(key))
     }
 }
 
@@ -263,7 +250,7 @@ RegisterAppHotkeys() {
 ; and runs it as Right Alt+key. A key with no action, Escape, a click or a
 ; second tap ends it, and the key is dropped. A key pressed with Ctrl, Alt or
 ; Win goes through, so Ctrl+C still copies. A second tap within 400 ms opens
-; Windows Search.
+; Raycast.
 ;
 ; The hook suppresses every key until the callback has read it, so a fast key
 ; never reaches the app first.
@@ -273,7 +260,7 @@ StartLeader() {
         quick := A_TickCount - LeaderStart < 400
         StopLeader()
         if quick
-            Send("#s")
+            Run("raycast://")
         return
     }
     ih := InputHook("L0")
@@ -307,21 +294,21 @@ LeaderKey(ih, vk, sc) {
         return SwitchToPreviousApp()
     if sc >= 0x02 && sc <= 0x0A                      ; 1-9 on the top row
         return JumpToTab(sc - 1)
-    key := sc = 0x27 ? "semicolon" : sc = 0x28 ? "quote" : StrLower(GetKeyName(keyName))
-    if RegExMatch(key, "^([a-z]|semicolon|quote)$") && ReadApp(key)
+    key := StrLower(GetKeyName(keyName))
+    if RegExMatch(key, "^[a-z]$") && ReadApp(key)
         SwitchMappedApp(key)
 }
 
-; Right Alt+1-9 brings Brave (the "quote" app) to the front on tab N; 9 is the
+; Right Alt+1-9 brings Brave (the "b" app) to the front on tab N; 9 is the
 ; last tab. It never cycles Brave windows, so the tab lands in the window in use.
 JumpToTab(n, *) {
-    app := ReadApp("quote")
+    app := ReadApp("b")
     if !app
         return
     if !WinActive(app.Criteria) {
         hwnd := WinExist(app.Criteria)
         if !hwnd
-            return SwitchMappedApp("quote")
+            return SwitchMappedApp("b")
         if WinGetMinMax(hwnd) = -1
             WinRestore(hwnd)
         WinActivate(hwnd)

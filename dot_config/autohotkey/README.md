@@ -63,7 +63,7 @@ To remove only the startup shortcut:
 - Escape sends Caps Lock (Wispr Flow push-to-talk) and leaves Caps Lock off.
 - Right Alt+letter switches to or launches the app in `apps.ini`. Right Alt
   sits where the macOS right Command key does, mirroring the "rcmd" switcher.
-  Right Alt+; is Slack, Right Alt+' is Brave.
+  Right Alt+S is Slack, Right Alt+B is Brave.
 - Right Alt+Shift+key does the same thing.
 - Right Alt+Ctrl+key assigns the focused app to that key. This updates the local
   `apps.ini`; copy the result back into the repo when it is worth sharing across
@@ -76,7 +76,7 @@ To remove only the startup shortcut:
 - Wait mode: tap Right Alt on its own, then press the key whenever. A key with
   no action, Escape, a click, or a second Right Alt tap ends it. Ctrl/Alt/Win
   combos pass through, so Ctrl+C still copies.
-- Double tap Right Alt opens Windows Search.
+- Double tap Right Alt opens Raycast.
 - The right Command key on a Mac-style keyboard reports as Right Win on Windows,
   so it is remapped to Right Alt — that is what drives the switcher above.
 
