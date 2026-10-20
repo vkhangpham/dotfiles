@@ -101,14 +101,6 @@ LAlt::LCtrl
 LWin::LAlt
 ~*LCtrl up::LCtrlRelease()
 
-; ShareX region capture on Cmd+Shift+C, copied and saved, never uploaded (set in
-; ShareX's ApplicationConfig.json). The Windows snip stands in when ShareX is not
-; installed. The Cmd key sends Ctrl, so it arrives as Ctrl+Shift+C. Off inside a
-; terminal, where Ctrl+Shift+C is the app's copy.
-#HotIf !TerminalActive()
-^+c::Run(FileExist(ShareX) ? '"' . ShareX . '" -RectangleRegion' : "ms-screenclip:")
-#HotIf
-
 ; Spotlight-style search on the Ctrl key. Ctrl now sends Win, so the keystroke
 ; arrives as Win+Space -- natively that cycles the input language, which is unused
 ; here. Send a real Win+S instead to open Windows Search. To point this at
@@ -252,13 +244,32 @@ RegisterAppHotkeys() {
         Hotkey(">!" . key, SwitchMappedApp.Bind(key))
         Hotkey(">!+" . key, SwitchMappedApp.Bind(key))
     }
-    ; V opens Raycast's clipboard history instead of an app.
-    Hotkey(">!v", OpenClipboardHistory)
-    Hotkey(">!+v", OpenClipboardHistory)
+    for key, action in KeyActions() {
+        Hotkey(">!" . key, action)
+        Hotkey(">!+" . key, action)
+    }
+}
+
+; Right Alt keys that run an action instead of opening an app. Wait mode reads
+; the same list.
+KeyActions() {
+    static actions := Map(
+        "v", OpenClipboardHistory,
+        "c", Capture,
+        "Space", Glaze.Bind("toggle-floating --centered"),   ; out of the grid and back
+        "Backspace", Glaze.Bind("toggle-minimized"))         ; the rest re-tile
+    return actions
 }
 
 OpenClipboardHistory(*) {
     Run("raycast://extensions/raycast/clipboard-history/clipboard-history")
+}
+
+; ShareX region capture, copied and saved, never uploaded (set in ShareX's
+; ApplicationConfig.json). The Windows snip stands in when ShareX is missing.
+Capture(*) {
+    global ShareX
+    Run(FileExist(ShareX) ? '"' . ShareX . '" -RectangleRegion' : "ms-screenclip:")
 }
 
 ; Wait mode: a lone Right Alt tap waits for the next key, with no time limit,
@@ -310,8 +321,9 @@ LeaderKey(ih, vk, sc) {
     name := GetKeyName(keyName)
     if name ~= "^(Left|Right|Up|Down)$"
         return Glaze("focus --direction " . StrLower(name))
-    if sc = 0x2F                                     ; V
-        return OpenClipboardHistory()
+    actions := KeyActions()
+    if actions.Has(name)
+        return actions[name]()
     if sc >= 0x02 && sc <= 0x0A                      ; 1-9 on the top row
         return JumpToTab(sc - 1)
     key := StrLower(GetKeyName(keyName))
