@@ -15,6 +15,11 @@ global ScrollSteps := Max(1, IniRead(SettingsIni, "scroll", "steps", "7") + 0)
 global ScrollDelayMs := Max(0, IniRead(SettingsIni, "scroll", "delay_ms", "4") + 0)
 global TerminalModifierSwap := ReadBool("features", "terminal_modifier_swap", true)
 global LCtrlAsWin := false   ; true while the held left Ctrl has turned into Win
+global Leader := ""          ; the InputHook while wait mode is on
+global LeaderStart := 0      ; A_TickCount of the tap that started it
+global GlazeDir := EnvGet("USERPROFILE") . "\.local\glazewm"
+global GlazeConfig := EnvGet("USERPROFILE") . "\.config\glazewm\config.yaml"
+global ShareX := EnvGet("LOCALAPPDATA") . "\Programs\ShareX\ShareX.exe"
 
 ; Processes that count as a terminal for the Cmd-style swap below. The macOS half
 ; of this repo uses Ghostty, which has no Windows build, so Windows Terminal is
@@ -25,6 +30,8 @@ global TerminalProcesses := BuildTerminalProcesses()
 RegisterAppHotkeys()
 RegisterScrollHotkeys()
 RegisterLCtrlAsWin()
+StartGlaze()
+WatchFocusForSpiral()
 
 ; CapsLock and Escape swap. Both use the keyboard hook ($ and *), which ignores
 ; keystrokes the script sends itself, so neither re-triggers the other.
@@ -42,9 +49,26 @@ $CapsLock::Send("{Escape}")
 
 ; The right Command key on a Mac-style keyboard reports as Right Win on Windows.
 ; Remap it to Right Alt, which is what drives the >! app-switcher hotkeys below.
-; A lone tap becomes a harmless Right Alt. This does not stop Right Win+L from
-; locking the machine, so the Linear key needs the Win+L fix in README.md.
-RWin::RAlt
+; A lone tap starts wait mode and a double tap opens Raycast (StartLeader); vkE8
+; masks the Alt so no menu bar opens. This does not stop Right Win+L from locking the machine, so the Linear
+; key needs the Win+L fix in README.md.
+*RWin::Send("{Blind}{RAlt down}")
+*RWin up:: {
+    Send("{Blind}{vkE8}{RAlt up}")
+    if A_PriorKey = "RWin"
+        StartLeader()
+}
+; A keyboard with a real Right Alt gets the same lone-tap wait mode. The vkE8 on
+; press keeps a lone tap from opening the app's menu bar.
+~*RAlt::Send("{Blind}{vkE8}")
+~*RAlt up:: {
+    if A_PriorKey = "RAlt"
+        StartLeader()
+}
+; A click ends wait mode, so a forgotten tap does not eat a later key.
+~*LButton::StopLeader()
+~*RButton::StopLeader()
+~*MButton::StopLeader()
 
 ; macOS-style Command key, swapped with the left Ctrl key. On the Mac layout the
 ; Command key sits where the Windows key sits (right of Alt) and is the primary
@@ -78,30 +102,11 @@ LAlt::LCtrl
 LWin::LAlt
 ~*LCtrl up::LCtrlRelease()
 
-; Keep the native Win+Shift+S region screenshot. After the remap above a physical
-; Win+Shift+S arrives as Ctrl+Shift+S, so open the screen-snip overlay for that
-; combo. (A literal Ctrl+Shift+S also opens it, which is unused on the Mac layout.)
-^+s::Run("ms-screenclip:")
-
 ; Spotlight-style search on the Ctrl key. Ctrl now sends Win, so the keystroke
 ; arrives as Win+Space -- natively that cycles the input language, which is unused
 ; here. Send a real Win+S instead to open Windows Search. To point this at
 ; PowerToys Run instead, change the Send to "!{Space}".
 #Space::Send("#s")
-
-; Restore Windows clipboard history. Normally Win+V, but Win now sends Ctrl so
-; Win+V is paste. Bind it to Win+Shift+C, which arrives as Ctrl+Shift+C after the
-; remap. Send("#v") emits a real Win+V -- the # modifier in a Send is applied
-; directly and is not re-caught by the LWin remap. (Literal Ctrl+Shift+C too.)
-;
-; Scoped off inside a terminal: Ctrl+Shift+C is that app's own copy binding, and
-; swallowing it globally would leave no way to copy there. Left unhooked in
-; terminals so the keystroke reaches the app untouched.
-;
-; Since Ctrl now sends Win, a physical Ctrl+V also opens the history natively.
-#HotIf !TerminalActive()
-^+c::Send("#v")
-#HotIf
 
 ; ---------------------------------------------------------------------------
 ; Terminal modifier swap (features/terminal_modifier_swap)
@@ -163,12 +168,94 @@ RegisterLCtrlAsWin() {
 
 LCtrlAsWinKey(key, *) {
     global LCtrlAsWin
+    ; Win+1-9 switches GlazeWM desktop; Win+Shift+1-9 sends the window there and
+    ; follows it, as Hyprland's SUPER keys do.
+    if key ~= "^[1-9]$" && ProcessExist("glazewm.exe") {
+        if !LCtrlAsWin
+            Send("{Blind}{LCtrl up}")
+        if GetKeyState("Shift")
+            Glaze("move --workspace " . key, true)
+        Glaze("focus --workspace " . key)
+        return
+    }
     if !LCtrlAsWin {
         LCtrlAsWin := true
         Send("{Blind}{LCtrl up}{LWin down}")
     }
     ; Win+Space cycles the input language; Win+S opens Windows Search.
     Send("{Blind}{" (key = "Space" ? "s" : key) "}")
+}
+
+; GlazeWM tiles windows. Start it with the script when it is unpacked in
+; ~/.local/glazewm. Its own keys are off (config.yaml); the script drives it
+; through the CLI: tap Right Alt then an arrow focuses that way, hold Right
+; Alt+arrow moves the window that way. The CLI talks to 127.0.0.1:6123.
+StartGlaze() {
+    global GlazeDir, GlazeConfig
+    wm := GlazeDir . "\glazewm.exe"
+    if FileExist(wm) && FileExist(GlazeConfig) && !ProcessExist("glazewm.exe")
+        Run(Format('"{1}" start --config "{2}"', wm, GlazeConfig), , "Hide")
+}
+
+Glaze(command, wait := false, *) {
+    global GlazeDir
+    cmd := Format('"{1}\cli\glazewm.exe" command {2}', GlazeDir, command)
+    wait ? RunWait(cmd, , "Hide") : Run(cmd, , "Hide")
+}
+
+; Spiral tiling, as Hyprland's dwindle: each time a window gets focus, the next
+; window splits it along its longer side.
+WatchFocusForSpiral() {
+    DllCall("RegisterShellHookWindow", "Ptr", A_ScriptHwnd)
+    OnMessage(DllCall("RegisterWindowMessage", "Str", "SHELLHOOK"), SpiralOnFocus)
+}
+
+SpiralOnFocus(event, hwnd, *) {
+    if (event = 4 || event = 0x8004) && ProcessExist("glazewm.exe")   ; window activated
+        SetTimer(SpiralSplit.Bind(hwnd), -100)
+}
+
+SpiralSplit(hwnd) {
+    try WinGetPos(, , &w, &h, hwnd)
+    catch
+        return
+    Glaze("set-tiling-direction " . (w >= h ? "horizontal" : "vertical"))
+}
+
+; Right Alt+Shift+letter opens the app alone on the first empty desktop and
+; goes there. An app already alone on its desktop stays where it is.
+IsolateApp(key, *) {
+    global GlazeDir
+    if !ReadApp(key)
+        return
+    SwitchMappedApp(key)
+    if !ProcessExist("glazewm.exe")
+        return
+    Sleep(150)
+    out := A_Temp . "\glazewm-workspaces.json"
+    RunWait(Format('{1} /c ""{2}\cli\glazewm.exe" query workspaces > "{3}""', A_ComSpec, GlazeDir, out), , "Hide")
+    try json := FileRead(out)
+    catch
+        return
+    used := Map()
+    focusedCount := 0
+    for part in StrSplit(json, '{"type":"workspace"') {
+        if !RegExMatch(part, '"name":"(\d+)"', &m)
+            continue
+        StrReplace(part, '"type":"window"', , , &count)
+        used[m[1]] := count
+        if InStr(part, '"hasFocus":true')
+            focusedCount := count
+    }
+    if focusedCount <= 1
+        return
+    Loop 9 {
+        if !used.Has(A_Index . "") || used[A_Index . ""] = 0 {
+            Glaze("move --workspace " . A_Index, true)
+            Glaze("focus --workspace " . A_Index)
+            return
+        }
+    }
 }
 
 ; A lone tap of the left Ctrl key opens Start, as a Win tap would.
@@ -207,21 +294,127 @@ ReadBool(section, key, defaultValue) {
 }
 
 RegisterAppHotkeys() {
-    ; Right Alt+0 jumps back to the previous app instead of a mapping.
-    Hotkey(">!0", SwitchToPreviousApp)
-    Hotkey(">!+0", SwitchToPreviousApp)
+    ; Right Alt is the app-switcher trigger: it sits where the Mac right
+    ; Command key does, so Right Alt+key mirrors the macOS "rcmd" switcher.
+    Hotkey(">!Enter", SwitchToPreviousApp)
+    Hotkey(">!+Enter", SwitchToPreviousApp)
+    for dir in ["Left", "Right", "Up", "Down"]
+        Hotkey(">!" . dir, Glaze.Bind("move --direction " . StrLower(dir), false))
 
-    keys := "abcdefghijklmnopqrstuvwxyz123456789"
-    Loop Parse, keys {
-        key := A_LoopField
-        ; Right Alt is the app-switcher trigger: it sits where the Mac right
-        ; Command key does, so Right Alt+key mirrors the macOS "rcmd" switcher.
-        ; Add Ctrl (Right Alt+Ctrl+key) to assign the focused app to a key.
-        Hotkey(">!" . key, SwitchMappedApp.Bind(key))
-        Hotkey(">!+" . key, SwitchMappedApp.Bind(key))
-        Hotkey("^>!" . key, AssignActiveApp.Bind(key))
-        Hotkey("^>!+" . key, AssignActiveApp.Bind(key))
+    Loop 9 {
+        Hotkey(">!" . A_Index, JumpToTab.Bind(A_Index))
+        Hotkey(">!+" . A_Index, JumpToTab.Bind(A_Index))
     }
+
+    Loop Parse, "abcdefghijklmnopqrstuvwxyz" {
+        key := A_LoopField
+        Hotkey(">!" . key, SwitchMappedApp.Bind(key))
+        Hotkey(">!+" . key, IsolateApp.Bind(key))
+    }
+    for key, action in KeyActions() {
+        Hotkey(">!" . key, action)
+        Hotkey(">!+" . key, action)
+    }
+}
+
+; Right Alt keys that run an action instead of opening an app. Wait mode reads
+; the same list.
+KeyActions() {
+    static actions := Map(
+        "v", OpenClipboardHistory,
+        "c", Capture,
+        "Space", Glaze.Bind("toggle-floating --centered", false),   ; out of the grid and back
+        "Backspace", Glaze.Bind("toggle-minimized", false))         ; the rest re-tile
+    return actions
+}
+
+OpenClipboardHistory(*) {
+    Run("raycast://extensions/raycast/clipboard-history/clipboard-history")
+}
+
+; ShareX region capture, copied and saved, never uploaded (set in ShareX's
+; ApplicationConfig.json). The Windows snip stands in when ShareX is missing.
+Capture(*) {
+    global ShareX
+    Run(FileExist(ShareX) ? '"' . ShareX . '" -RectangleRegion' : "ms-screenclip:")
+}
+
+; Wait mode: a lone Right Alt tap waits for the next key, with no time limit,
+; and runs it as Right Alt+key. A key with no action, Escape, a click or a
+; second tap ends it, and the key is dropped. A key pressed with Ctrl, Alt or
+; Win goes through, so Ctrl+C still copies. A second tap within 400 ms opens
+; Raycast.
+;
+; The hook suppresses every key until the callback has read it, so a fast key
+; never reaches the app first.
+StartLeader() {
+    global Leader, LeaderStart
+    if Leader {
+        quick := A_TickCount - LeaderStart < 400
+        StopLeader()
+        if quick
+            Run("raycast://")
+        return
+    }
+    ih := InputHook("L0")
+    ih.KeyOpt("{All}", "NS")
+    ih.KeyOpt("{LShift}{RShift}{LCtrl}{RCtrl}{LAlt}{RAlt}{LWin}{RWin}", "-N-S")
+    ih.OnKeyDown := LeaderKey
+    Leader := ih
+    LeaderStart := A_TickCount
+    ih.Start()
+}
+
+StopLeader(*) {
+    global Leader
+    if !Leader
+        return
+    ih := Leader
+    Leader := ""
+    ih.Stop()
+}
+
+LeaderKey(ih, vk, sc) {
+    global Leader
+    keyName := Format("vk{:X}sc{:03X}", vk, sc)
+    ; The hook held this key before the wait ended, so it belongs to the app.
+    if Leader != ih
+        return Send("{Blind}{" . keyName . "}")
+    StopLeader()
+    if GetKeyState("Ctrl") || GetKeyState("LAlt") || GetKeyState("LWin") || GetKeyState("RWin")
+        return Send("{Blind}{" . keyName . "}")
+    if sc = 0x1C                                     ; Enter
+        return SwitchToPreviousApp()
+    name := GetKeyName(keyName)
+    if name ~= "^(Left|Right|Up|Down)$"
+        return Glaze("focus --direction " . StrLower(name))
+    actions := KeyActions()
+    if actions.Has(name)
+        return actions[name]()
+    if sc >= 0x02 && sc <= 0x0A                      ; 1-9 on the top row
+        return JumpToTab(sc - 1)
+    key := StrLower(GetKeyName(keyName))
+    if RegExMatch(key, "^[a-z]$") && ReadApp(key)
+        GetKeyState("Shift") ? IsolateApp(key) : SwitchMappedApp(key)
+}
+
+; Right Alt+1-9 brings Brave (the "a" app) to the front on tab N; 9 is the
+; last tab. It never cycles Brave windows, so the tab lands in the window in use.
+JumpToTab(n, *) {
+    app := ReadApp("a")
+    if !app
+        return
+    if !WinActive(app.Criteria) {
+        hwnd := WinExist(app.Criteria)
+        if !hwnd
+            return SwitchMappedApp("a")
+        if WinGetMinMax(hwnd) = -1
+            WinRestore(hwnd)
+        WinActivate(hwnd)
+        if !WinWaitActive(hwnd, , 1)
+            return
+    }
+    Send("^" . n)
 }
 
 ReadApp(key) {
@@ -248,82 +441,41 @@ ExpandEnv(text) {
     return StrGet(buf)
 }
 
+; An unmapped key does nothing.
 SwitchMappedApp(key, *) {
     app := ReadApp(key)
-    if app {
-        if app.Criteria = "" {
-            Notify("No window criteria configured for " . app.Name)
-            return
-        }
-
-        try windows := WinGetList(app.Criteria)
-        catch Error as err {
-            Notify("Invalid window criteria for " . app.Name . ": " . err.Message)
-            return
-        }
-        if windows.Length {
-            CycleWindows(windows)
-            return
-        }
-
-        if app.Command = "" {
-            Notify("No launch command configured for " . app.Name)
-            return
-        }
-
-        try {
-            Run(app.Command)
-            hwnd := WinWait(app.Criteria, , 15)
-            if hwnd
-                WinActivate(hwnd)
-            else
-                Notify("Started " . app.Name . ", but no matching window appeared")
-        } catch Error as err {
-            Notify("Could not start " . app.Name . ": " . err.Message)
-        }
+    if !app
+        return
+    if app.Criteria = "" {
+        Notify("No window criteria configured for " . app.Name)
         return
     }
 
-    windows := FindDynamicWindows(key)
-    if !windows.Length {
-        Notify("No mapping or running app for Right Alt+" . StrUpper(key))
+    try windows := WinGetList(app.Criteria)
+    catch Error as err {
+        Notify("Invalid window criteria for " . app.Name . ": " . err.Message)
         return
     }
-    CycleWindows(windows)
-}
+    if windows.Length {
+        CycleWindows(windows)
+        return
+    }
 
-AssignActiveApp(key, *) {
-    global AppsIni
-    hwnd := WinExist("A")
-    if !hwnd {
-        Notify("No active window to assign")
+    if app.Command = "" {
+        Notify("No launch command configured for " . app.Name)
         return
     }
 
     try {
-        processName := WinGetProcessName(hwnd)
-        processPath := WinGetProcessPath(hwnd)
-        displayName := RegExReplace(processName, "i)\.exe$")
-        criteria := "ahk_exe " . processName
-        command := Chr(34) . processPath . Chr(34)
-        IniWrite(displayName . "|" . criteria . "|" . command, AppsIni, "apps", key)
-        Notify("Assigned Right Alt+" . StrUpper(key) . " to " . displayName)
+        Run(app.Command)
+        hwnd := WinWait(app.Criteria, , 15)
+        if hwnd
+            WinActivate(hwnd)
+        else
+            Notify("Started " . app.Name . ", but no matching window appeared")
     } catch Error as err {
-        Notify("Could not assign app: " . err.Message)
+        Notify("Could not start " . app.Name . ": " . err.Message)
     }
-}
-
-FindDynamicWindows(key) {
-    matches := []
-    for hwnd in WinGetList() {
-        try {
-            processName := StrLower(WinGetProcessName(hwnd))
-            title := WinGetTitle(hwnd)
-            if title != "" && SubStr(processName, 1, 1) = StrLower(key)
-                matches.Push(hwnd)
-        }
-    }
-    return matches
 }
 
 CycleWindows(windows) {
