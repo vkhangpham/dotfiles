@@ -56,7 +56,8 @@ To remove only the startup shortcut:
 - Right Alt+letter switches to or launches the app in `apps.ini`. Right Alt
   sits where the macOS right Command key does, mirroring the "rcmd" switcher.
   Right Alt+S is Slack, Right Alt+A is Brave.
-- Right Alt+Shift+key does the same thing.
+- Right Alt+Shift+letter opens the app alone on the first empty desktop and goes
+  there. An app already alone on its desktop stays put.
 - Right Alt+Enter jumps to the app used before this one; press again to jump back.
 - Right Alt+1-9 brings Brave to the front on tab N (9 is the last tab), so the
   tab order is the key order.
@@ -70,7 +71,8 @@ To remove only the startup shortcut:
   Right Alt+Space takes the window out of the grid (floating) and back; Right
   Alt+Backspace minimizes it so the rest re-tile.
   Win (the left Ctrl key) + 1-9 switches desktop; add Shift to send the window
-  there and follow it.
+  there and follow it. New windows spiral like Hyprland's dwindle: each one
+  splits the focused window along its longer side.
   The script starts it from `~/.local/glazewm`, unpacked from the official MSI
   with `msiexec /a` since this machine has no admin.
 - Right Alt+V opens Raycast's clipboard history.

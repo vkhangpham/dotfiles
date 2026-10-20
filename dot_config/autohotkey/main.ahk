@@ -31,6 +31,7 @@ RegisterAppHotkeys()
 RegisterScrollHotkeys()
 RegisterLCtrlAsWin()
 StartGlaze()
+WatchFocusForSpiral()
 
 ; CapsLock and Escape swap. Both use the keyboard hook ($ and *), which ignores
 ; keystrokes the script sends itself, so neither re-triggers the other.
@@ -202,6 +203,61 @@ Glaze(command, wait := false, *) {
     wait ? RunWait(cmd, , "Hide") : Run(cmd, , "Hide")
 }
 
+; Spiral tiling, as Hyprland's dwindle: each time a window gets focus, the next
+; window splits it along its longer side.
+WatchFocusForSpiral() {
+    DllCall("RegisterShellHookWindow", "Ptr", A_ScriptHwnd)
+    OnMessage(DllCall("RegisterWindowMessage", "Str", "SHELLHOOK"), SpiralOnFocus)
+}
+
+SpiralOnFocus(event, hwnd, *) {
+    if (event = 4 || event = 0x8004) && ProcessExist("glazewm.exe")   ; window activated
+        SetTimer(SpiralSplit.Bind(hwnd), -100)
+}
+
+SpiralSplit(hwnd) {
+    try WinGetPos(, , &w, &h, hwnd)
+    catch
+        return
+    Glaze("set-tiling-direction " . (w >= h ? "horizontal" : "vertical"))
+}
+
+; Right Alt+Shift+letter opens the app alone on the first empty desktop and
+; goes there. An app already alone on its desktop stays where it is.
+IsolateApp(key, *) {
+    global GlazeDir
+    if !ReadApp(key)
+        return
+    SwitchMappedApp(key)
+    if !ProcessExist("glazewm.exe")
+        return
+    Sleep(150)
+    out := A_Temp . "\glazewm-workspaces.json"
+    RunWait(Format('{1} /c ""{2}\cli\glazewm.exe" query workspaces > "{3}""', A_ComSpec, GlazeDir, out), , "Hide")
+    try json := FileRead(out)
+    catch
+        return
+    used := Map()
+    focusedCount := 0
+    for part in StrSplit(json, '{"type":"workspace"') {
+        if !RegExMatch(part, '"name":"(\d+)"', &m)
+            continue
+        StrReplace(part, '"type":"window"', , , &count)
+        used[m[1]] := count
+        if InStr(part, '"hasFocus":true')
+            focusedCount := count
+    }
+    if focusedCount <= 1
+        return
+    Loop 9 {
+        if !used.Has(A_Index . "") || used[A_Index . ""] = 0 {
+            Glaze("move --workspace " . A_Index, true)
+            Glaze("focus --workspace " . A_Index)
+            return
+        }
+    }
+}
+
 ; A lone tap of the left Ctrl key opens Start, as a Win tap would.
 LCtrlRelease() {
     global LCtrlAsWin
@@ -253,7 +309,7 @@ RegisterAppHotkeys() {
     Loop Parse, "abcdefghijklmnopqrstuvwxyz" {
         key := A_LoopField
         Hotkey(">!" . key, SwitchMappedApp.Bind(key))
-        Hotkey(">!+" . key, SwitchMappedApp.Bind(key))
+        Hotkey(">!+" . key, IsolateApp.Bind(key))
     }
     for key, action in KeyActions() {
         Hotkey(">!" . key, action)
@@ -339,7 +395,7 @@ LeaderKey(ih, vk, sc) {
         return JumpToTab(sc - 1)
     key := StrLower(GetKeyName(keyName))
     if RegExMatch(key, "^[a-z]$") && ReadApp(key)
-        SwitchMappedApp(key)
+        GetKeyState("Shift") ? IsolateApp(key) : SwitchMappedApp(key)
 }
 
 ; Right Alt+1-9 brings Brave (the "a" app) to the front on tab N; 9 is the
