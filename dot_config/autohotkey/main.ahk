@@ -97,30 +97,17 @@ LAlt::LCtrl
 LWin::LAlt
 ~*LCtrl up::LCtrlRelease()
 
-; Keep the native Win+Shift+S region screenshot. After the remap above a physical
-; Win+Shift+S arrives as Ctrl+Shift+S, so open the screen-snip overlay for that
-; combo. (A literal Ctrl+Shift+S also opens it, which is unused on the Mac layout.)
-^+s::Run("ms-screenclip:")
+; Screen snip on Cmd+Shift+C. The Cmd key sends Ctrl, so it arrives as
+; Ctrl+Shift+C. Off inside a terminal, where Ctrl+Shift+C is the app's copy.
+#HotIf !TerminalActive()
+^+c::Run("ms-screenclip:")
+#HotIf
 
 ; Spotlight-style search on the Ctrl key. Ctrl now sends Win, so the keystroke
 ; arrives as Win+Space -- natively that cycles the input language, which is unused
 ; here. Send a real Win+S instead to open Windows Search. To point this at
 ; PowerToys Run instead, change the Send to "!{Space}".
 #Space::Send("#s")
-
-; Restore Windows clipboard history. Normally Win+V, but Win now sends Ctrl so
-; Win+V is paste. Bind it to Win+Shift+C, which arrives as Ctrl+Shift+C after the
-; remap. Send("#v") emits a real Win+V -- the # modifier in a Send is applied
-; directly and is not re-caught by the LWin remap. (Literal Ctrl+Shift+C too.)
-;
-; Scoped off inside a terminal: Ctrl+Shift+C is that app's own copy binding, and
-; swallowing it globally would leave no way to copy there. Left unhooked in
-; terminals so the keystroke reaches the app untouched.
-;
-; Since Ctrl now sends Win, a physical Ctrl+V also opens the history natively.
-#HotIf !TerminalActive()
-^+c::Send("#v")
-#HotIf
 
 ; ---------------------------------------------------------------------------
 ; Terminal modifier swap (features/terminal_modifier_swap)
@@ -228,7 +215,6 @@ ReadBool(section, key, defaultValue) {
 RegisterAppHotkeys() {
     ; Right Alt is the app-switcher trigger: it sits where the Mac right
     ; Command key does, so Right Alt+key mirrors the macOS "rcmd" switcher.
-    ; Add Ctrl (Right Alt+Ctrl+key) to assign the focused app to a key.
     Hotkey(">!Enter", SwitchToPreviousApp)
     Hotkey(">!+Enter", SwitchToPreviousApp)
 
@@ -241,8 +227,6 @@ RegisterAppHotkeys() {
         key := A_LoopField
         Hotkey(">!" . key, SwitchMappedApp.Bind(key))
         Hotkey(">!+" . key, SwitchMappedApp.Bind(key))
-        Hotkey("^>!" . key, AssignActiveApp.Bind(key))
-        Hotkey("^>!+" . key, AssignActiveApp.Bind(key))
     }
     ; V opens Raycast's clipboard history instead of an app.
     Hotkey(">!v", OpenClipboardHistory)
@@ -351,82 +335,41 @@ ExpandEnv(text) {
     return StrGet(buf)
 }
 
+; An unmapped key does nothing.
 SwitchMappedApp(key, *) {
     app := ReadApp(key)
-    if app {
-        if app.Criteria = "" {
-            Notify("No window criteria configured for " . app.Name)
-            return
-        }
-
-        try windows := WinGetList(app.Criteria)
-        catch Error as err {
-            Notify("Invalid window criteria for " . app.Name . ": " . err.Message)
-            return
-        }
-        if windows.Length {
-            CycleWindows(windows)
-            return
-        }
-
-        if app.Command = "" {
-            Notify("No launch command configured for " . app.Name)
-            return
-        }
-
-        try {
-            Run(app.Command)
-            hwnd := WinWait(app.Criteria, , 15)
-            if hwnd
-                WinActivate(hwnd)
-            else
-                Notify("Started " . app.Name . ", but no matching window appeared")
-        } catch Error as err {
-            Notify("Could not start " . app.Name . ": " . err.Message)
-        }
+    if !app
+        return
+    if app.Criteria = "" {
+        Notify("No window criteria configured for " . app.Name)
         return
     }
 
-    windows := FindDynamicWindows(key)
-    if !windows.Length {
-        Notify("No mapping or running app for Right Alt+" . StrUpper(key))
+    try windows := WinGetList(app.Criteria)
+    catch Error as err {
+        Notify("Invalid window criteria for " . app.Name . ": " . err.Message)
         return
     }
-    CycleWindows(windows)
-}
+    if windows.Length {
+        CycleWindows(windows)
+        return
+    }
 
-AssignActiveApp(key, *) {
-    global AppsIni
-    hwnd := WinExist("A")
-    if !hwnd {
-        Notify("No active window to assign")
+    if app.Command = "" {
+        Notify("No launch command configured for " . app.Name)
         return
     }
 
     try {
-        processName := WinGetProcessName(hwnd)
-        processPath := WinGetProcessPath(hwnd)
-        displayName := RegExReplace(processName, "i)\.exe$")
-        criteria := "ahk_exe " . processName
-        command := Chr(34) . processPath . Chr(34)
-        IniWrite(displayName . "|" . criteria . "|" . command, AppsIni, "apps", key)
-        Notify("Assigned Right Alt+" . StrUpper(key) . " to " . displayName)
+        Run(app.Command)
+        hwnd := WinWait(app.Criteria, , 15)
+        if hwnd
+            WinActivate(hwnd)
+        else
+            Notify("Started " . app.Name . ", but no matching window appeared")
     } catch Error as err {
-        Notify("Could not assign app: " . err.Message)
+        Notify("Could not start " . app.Name . ": " . err.Message)
     }
-}
-
-FindDynamicWindows(key) {
-    matches := []
-    for hwnd in WinGetList() {
-        try {
-            processName := StrLower(WinGetProcessName(hwnd))
-            title := WinGetTitle(hwnd)
-            if title != "" && SubStr(processName, 1, 1) = StrLower(key)
-                matches.Push(hwnd)
-        }
-    }
-    return matches
 }
 
 CycleWindows(windows) {

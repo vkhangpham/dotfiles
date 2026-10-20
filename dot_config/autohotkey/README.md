@@ -41,14 +41,9 @@ To remove only the startup shortcut:
 - Ctrl+Space opens Windows Search, standing in for Spotlight. Ctrl sends Win, so
   the keystroke arrives as Win+Space (natively an input-language cycle, unused
   here) and the script turns it into a real Win+S.
-- Win+Shift+S opens Windows' native region screenshot UI. (Because Win sends
-  Ctrl, a literal Ctrl+Shift+S also opens it. The physical Ctrl key reaches the
-  same UI directly, since it now sends Win.)
-- Win+Shift+C opens the Windows clipboard history. Win+V is normally that, but
-  Win now sends Ctrl so Win+V pastes; this restores the history picker. (A
-  literal Ctrl+Shift+C also opens it. Clipboard history must be enabled in
-  Windows Settings.) This hotkey is scoped off inside a terminal, where
-  Ctrl+Shift+C is the app's own copy binding.
+- Cmd+Shift+C opens the Windows screen snip. Cmd sends Ctrl, so it arrives as
+  Ctrl+Shift+C. It is off inside a terminal, where Ctrl+Shift+C is the app's
+  own copy.
 - Inside a terminal, Cmd-style Win combos that the terminal puts on
   Ctrl+Shift are translated: Win+T new tab, Win+W close pane, Win+N new window,
   Win+F find. A physically pressed Ctrl is left alone, so shell readline keys
@@ -65,14 +60,10 @@ To remove only the startup shortcut:
   sits where the macOS right Command key does, mirroring the "rcmd" switcher.
   Right Alt+S is Slack, Right Alt+A is Brave.
 - Right Alt+Shift+key does the same thing.
-- Right Alt+Ctrl+key assigns the focused app to that key. This updates the local
-  `apps.ini`; copy the result back into the repo when it is worth sharing across
-  Windows machines.
 - Right Alt+Enter jumps to the app used before this one; press again to jump back.
 - Right Alt+1-9 brings Brave to the front on tab N (9 is the last tab), so the
   tab order is the key order.
-- An unmapped Right Alt+letter cycles running apps whose process starts with
-  that letter.
+- An unmapped Right Alt+letter does nothing.
 - Wait mode: tap Right Alt on its own, then press the key whenever. A key with
   no action, Escape, a click, or a second Right Alt tap ends it. Ctrl/Alt/Win
   combos pass through, so Ctrl+C still copies.
@@ -82,10 +73,10 @@ To remove only the startup shortcut:
   so it is remapped to Right Alt — that is what drives the switcher above.
 
 The seeded app commands are best-effort executable names. Windows Store apps,
-portable installs, and differently named executables may need reassignment with
-Right Win+Alt+key or a manual edit to `apps.ini`.
+portable installs, and differently named executables may need a manual
+edit to `apps.ini`.
 
-There is no Ghostty build for Windows, so the two keys that open the main
+There is no Ghostty build for Windows, so the key that opens the main
 terminal on macOS is mapped to Windows Terminal on the `archlinux` WSL profile
 (`m`).
 
