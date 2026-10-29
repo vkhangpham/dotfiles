@@ -65,20 +65,22 @@ To remove only the startup shortcut:
 - Wait mode: tap Right Alt on its own, then press the key whenever. A key with
   no action, Escape, a click, or a second Right Alt tap ends it. Ctrl/Alt/Win
   combos pass through, so Ctrl+C still copies.
-- Double tap Right Alt opens Raycast.
+- Right Alt+Space, or a double tap of Right Alt, opens Raycast. The script
+  presses Raycast's own hotkey, so set it in Raycast to Ctrl+Alt+Shift+Space
+  (and Clipboard History to Ctrl+Alt+Shift+V). A `raycast://` link is 2-4 s
+  slower, and Raycast ignores a Win tap sent by a script.
 - GlazeWM tiles windows (`../glazewm/config.yaml`). Tap Right Alt then an arrow
   focuses the window that way; hold Right Alt+arrow moves the window that way.
-  Right Alt+Space takes the window out of the grid (floating) and back; Right
-  Alt+Backspace minimizes it so the rest re-tile.
+  Right Alt+Shift+Space takes the window out of the grid (floating) and back;
+  Right Alt+Backspace minimizes it so the rest re-tile.
   Win (the left Ctrl key) + 1-9 switches desktop; add Shift to send the window
   there and follow it. New windows spiral like Hyprland's dwindle: each one
   splits the focused window along its longer side.
   The script starts it from `~/.local/glazewm`, unpacked from the official MSI
   with `msiexec /a` since this machine has no admin.
 - Right Alt+V opens Raycast's clipboard history.
-- Right Alt+C opens a ShareX region capture: copied and saved to
-  Documents/ShareX, never uploaded (ShareX's `ApplicationConfig.json`). Without
-  ShareX it falls back to the Windows snip.
+- Right Alt+C opens the Windows snip (Win+Shift+S). Its toolbar draws on the
+  capture itself (pen, highlighter, shapes), so no screenshot app is needed.
 - The right Command key on a Mac-style keyboard reports as Right Win on Windows,
   so it is remapped to Right Alt — that is what drives the switcher above.
 

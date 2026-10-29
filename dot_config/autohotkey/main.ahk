@@ -20,7 +20,6 @@ global Leader := ""          ; the InputHook while wait mode is on
 global LeaderStart := 0      ; A_TickCount of the tap that started it
 global GlazeDir := EnvGet("USERPROFILE") . "\.local\glazewm"
 global GlazeConfig := EnvGet("USERPROFILE") . "\.config\glazewm\config.yaml"
-global ShareX := EnvGet("LOCALAPPDATA") . "\Programs\ShareX\ShareX.exe"
 global GlazeSock := -1       ; the open socket to GlazeWM, -1 while closed
 global GlazeRetryAt := 0     ; A_TickCount before which a failed connect is not retried
 global Apps := Map()         ; apps.ini, read once; ReadApp
@@ -561,16 +560,10 @@ OpenClipboardHistory(*) {
     Send("^!+v")
 }
 
-; ShareX region capture, copied and saved, never uploaded (set in ShareX's
-; ApplicationConfig.json). Press ShareX's own Ctrl+PrintScreen when it runs:
-; starting ShareX.exe to pass the job on takes 0.5-1.5 s here, the hotkey about
-; 0.25 s. The Windows snip stands in when ShareX is missing.
+; The Windows snip: its toolbar has pen, highlighter and shapes on the capture
+; itself, so no screenshot app is needed.
 Capture(*) {
-    global ShareX
-    if ProcessExist("ShareX.exe")
-        Send("^{PrintScreen}")
-    else
-        Run(FileExist(ShareX) ? '"' . ShareX . '" -RectangleRegion' : "ms-screenclip:")
+    Send("#+s")
 }
 
 ; Wait mode: a lone Right Alt tap waits for the next key, with no time limit,
