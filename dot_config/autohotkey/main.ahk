@@ -24,6 +24,7 @@ global ShareX := EnvGet("LOCALAPPDATA") . "\Programs\ShareX\ShareX.exe"
 global GlazeSock := -1       ; the open socket to GlazeWM, -1 while closed
 global GlazeRetryAt := 0     ; A_TickCount before which a failed connect is not retried
 global Apps := Map()         ; apps.ini, read once; ReadApp
+global FocusHistory := []    ; window handles, most recently focused first
 
 ; Processes that count as a terminal for the Cmd-style swap below. The macOS half
 ; of this repo uses Ghostty, which has no Windows build, so Windows Terminal is
@@ -380,14 +381,34 @@ SockRecvAll(s, buf, size := 0) {
 
 ; Spiral tiling, as Hyprland's dwindle: each time a window gets focus, the next
 ; window splits it along its longer side.
+;
+; Windows' foreground event, not the shell hook: a window GlazeWM brings back
+; from another desktop gets no shell "activated" message.
 WatchFocusForSpiral() {
-    DllCall("RegisterShellHookWindow", "Ptr", A_ScriptHwnd)
-    OnMessage(DllCall("RegisterWindowMessage", "Str", "SHELLHOOK"), SpiralOnFocus)
+    static callback := CallbackCreate(SpiralOnFocus, "F", 7)
+    DllCall("SetWinEventHook", "UInt", 0x0003, "UInt", 0x0003, "Ptr", 0, "Ptr", callback   ; EVENT_SYSTEM_FOREGROUND
+        , "UInt", 0, "UInt", 0, "UInt", 0)                                             ; WINEVENT_OUTOFCONTEXT
 }
 
-SpiralOnFocus(event, hwnd, *) {
-    if (event = 4 || event = 0x8004) && GlazeConnected()   ; window activated
+SpiralOnFocus(hook, event, hwnd, *) {
+    if !hwnd
+        return
+    RecordFocus(hwnd)
+    if GlazeConnected()
         SetTimer(SpiralSplit.Bind(hwnd), -100)
+}
+
+; Most recent first, for Right Alt+Enter across desktops.
+RecordFocus(hwnd) {
+    global FocusHistory
+    for index, h in FocusHistory
+        if h = hwnd {
+            FocusHistory.RemoveAt(index)
+            break
+        }
+    FocusHistory.InsertAt(1, hwnd)
+    if FocusHistory.Length > 30
+        FocusHistory.Pop()
 }
 
 SpiralSplit(hwnd) {
@@ -408,40 +429,53 @@ IsolateApp(key, *) {
     ; Find the app's desktop by its window handle. A window just launched may
     ; take GlazeWM a moment to pick up.
     Loop 10 {
-        used := Map(), id := "", count := 0
-        for part in StrSplit(GlazeSend("query workspaces"), '{"type":"workspace"') {
-            if !RegExMatch(part, '^,"id":"[^"]+","name":"(\d+)"', &ws)
-                continue
-            windows := GlazeWindowIds(part)
-            used[ws[1]] := windows.Count
-            if windows.Has(hwnd)
-                id := windows[hwnd], count := windows.Count
-        }
-        if id
+        glazed := GlazeWindows()
+        if glazed.Has(hwnd)
             break
         Sleep(30)
     }
-    if count <= 1
+    if !glazed.Has(hwnd)
+        return
+    used := Map()
+    for , w in glazed
+        used[w.Desktop] := (used.Has(w.Desktop) ? used[w.Desktop] : 0) + 1
+    if used[glazed[hwnd].Desktop] <= 1
         return
     Loop 9 {
-        if !used.Has(A_Index . "") || used[A_Index . ""] = 0 {
+        if !used.Has(A_Index . "") {
             ; By id, since GlazeWM may not have seen the focus change yet.
-            Glaze("--id " . id . " move --workspace " . A_Index)
+            Glaze("--id " . glazed[hwnd].Id . " move --workspace " . A_Index)
             Glaze("focus --workspace " . A_Index)
             return
         }
     }
 }
 
-; Window handle -> GlazeWM container id, for every window in a query reply.
-GlazeWindowIds(json) {
-    ids := Map()
-    pos := 1
-    while pos := RegExMatch(json, '\{"type":"window","id":"([0-9a-f-]+)".*?"handle":(\d+),"title"', &w, pos) {
-        ids[w[2] + 0] := w[1]
-        pos += w.Len
+; Every window GlazeWM manages: handle -> {Id, Desktop, Minimized}.
+GlazeWindows() {
+    found := Map()
+    if !GlazeConnected()
+        return found
+    for part in StrSplit(GlazeSend("query workspaces"), '{"type":"workspace"') {
+        if !RegExMatch(part, '^,"id":"[^"]+","name":"([^"]+)"', &ws)
+            continue
+        pos := 1
+        while pos := RegExMatch(part, '\{"type":"window","id":"([0-9a-f-]+)".*?"state":\{"type":"(\w+)".*?"handle":(\d+),"title"', &w, pos) {
+            found[w[3] + 0] := {Id: w[1], Desktop: ws[1], Minimized: w[2] = "minimized"}
+            pos += w.Len
+        }
     }
-    return ids
+    return found
+}
+
+; GlazeWM's focus by id neither switches desktop nor brings back a minimized
+; window, so do both first. False when GlazeWM does not answer.
+GlazeFocus(w) {
+    if Glaze("focus --workspace " . w.Desktop) = ""
+        return false
+    if w.Minimized
+        Glaze("--id " . w.Id . " toggle-minimized")
+    return Glaze("focus --container-id " . w.Id) != ""
 }
 
 ; A lone tap of the left Ctrl key opens Start, as a Win tap would.
@@ -634,7 +668,7 @@ SwitchMappedApp(key, *) {
     ; GlazeWM hides the windows on other desktops, so look at hidden windows
     ; too, and keep the hidden ones GlazeWM manages: those it can bring back.
     ; The rest are an app's own hidden helper windows.
-    glazed := GlazeConnected() ? GlazeWindowIds(GlazeSend("query windows")) : Map()
+    glazed := GlazeWindows()
     DetectHiddenWindows(true)
     try found := WinGetList(app.Criteria)
     catch Error as err {
@@ -680,9 +714,8 @@ CycleWindows(windows, glazed) {
         }
     }
 
-    ; A window on another desktop: GlazeWM switches there and focuses it.
-    if glazed.Has(target) && !DllCall("IsWindowVisible", "Ptr", target)
-        && Glaze("focus --container-id " . glazed[target]) != ""
+    ; GlazeWM knows the window's desktop, so let it switch there and focus it.
+    if glazed.Has(target) && GlazeFocus(glazed[target])
         return
     try {
         if WinGetMinMax(target) = -1
@@ -691,18 +724,28 @@ CycleWindows(windows, glazed) {
     }
 }
 
-; Right Alt+0 focuses the topmost Alt+Tab window of another app. WinGetList
-; returns windows in z-order, so that is the app used last before this one.
+; Right Alt+Enter focuses the last-used window of another app, on any desktop.
+; The focus history comes first: GlazeWM hides the windows on other desktops,
+; so z-order alone (WinGetList) only knows this desktop. It is the fallback.
 SwitchToPreviousApp(*) {
+    global FocusHistory
     active := WinExist("A")
     try activeProcess := WinGetProcessName(active)
     catch
         activeProcess := ""
-    for hwnd in WinGetList() {
-        if hwnd = active || !IsAltTabWindow(hwnd)
+    glazed := GlazeWindows()
+    candidates := FocusHistory.Clone()
+    for hwnd in WinGetList()
+        candidates.Push(hwnd)
+    for hwnd in candidates {
+        if hwnd = active || !DllCall("IsWindow", "Ptr", hwnd)
             continue
         try {
             if WinGetProcessName(hwnd) = activeProcess
+                continue
+            if glazed.Has(hwnd) && GlazeFocus(glazed[hwnd])
+                return
+            if !IsAltTabWindow(hwnd)
                 continue
             if WinGetMinMax(hwnd) = -1
                 WinRestore(hwnd)
