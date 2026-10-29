@@ -6,6 +6,7 @@ Persistent
 KeyHistory(500)   ; room to read back a few seconds of held keys after a glitch
 SetTitleMatchMode(2)
 SendMode("Input")
+SetWinDelay(-1)   ; the default sleeps 100 ms after every WinActivate and WinRestore
 SetWorkingDir(A_ScriptDir)
 
 global AppsIni := A_ScriptDir . "\apps.ini"
@@ -15,6 +16,15 @@ global ScrollSteps := Max(1, IniRead(SettingsIni, "scroll", "steps", "7") + 0)
 global ScrollDelayMs := Max(0, IniRead(SettingsIni, "scroll", "delay_ms", "4") + 0)
 global TerminalModifierSwap := ReadBool("features", "terminal_modifier_swap", true)
 global LCtrlAsWin := false   ; true while the held left Ctrl has turned into Win
+global Leader := ""          ; the InputHook while wait mode is on
+global LeaderStart := 0      ; A_TickCount of the tap that started it
+global GlazeDir := EnvGet("USERPROFILE") . "\.local\glazewm"
+global GlazeConfig := EnvGet("USERPROFILE") . "\.config\glazewm\config.yaml"
+global ShareX := EnvGet("LOCALAPPDATA") . "\Programs\ShareX\ShareX.exe"
+global GlazeSock := -1       ; the open socket to GlazeWM, -1 while closed
+global GlazeRetryAt := 0     ; A_TickCount before which a failed connect is not retried
+global Apps := Map()         ; apps.ini, read once; ReadApp
+global FocusHistory := []    ; window handles, most recently focused first
 
 ; Processes that count as a terminal for the Cmd-style swap below. The macOS half
 ; of this repo uses Ghostty, which has no Windows build, so Windows Terminal is
@@ -25,6 +35,9 @@ global TerminalProcesses := BuildTerminalProcesses()
 RegisterAppHotkeys()
 RegisterScrollHotkeys()
 RegisterLCtrlAsWin()
+StartGlaze()
+StartGlazeHeal()
+WatchFocusForSpiral()
 
 ; CapsLock and Escape swap. Both use the keyboard hook ($ and *), which ignores
 ; keystrokes the script sends itself, so neither re-triggers the other.
@@ -42,9 +55,26 @@ $CapsLock::Send("{Escape}")
 
 ; The right Command key on a Mac-style keyboard reports as Right Win on Windows.
 ; Remap it to Right Alt, which is what drives the >! app-switcher hotkeys below.
-; A lone tap becomes a harmless Right Alt. This does not stop Right Win+L from
-; locking the machine, so the Linear key needs the Win+L fix in README.md.
-RWin::RAlt
+; A lone tap starts wait mode and a double tap opens Raycast (StartLeader); vkE8
+; masks the Alt so no menu bar opens. This does not stop Right Win+L from locking the machine, so the Linear
+; key needs the Win+L fix in README.md.
+*RWin::Send("{Blind}{RAlt down}")
+*RWin up:: {
+    Send("{Blind}{vkE8}{RAlt up}")
+    if A_PriorKey = "RWin"
+        StartLeader()
+}
+; A keyboard with a real Right Alt gets the same lone-tap wait mode. The vkE8 on
+; press keeps a lone tap from opening the app's menu bar.
+~*RAlt::Send("{Blind}{vkE8}")
+~*RAlt up:: {
+    if A_PriorKey = "RAlt"
+        StartLeader()
+}
+; A click ends wait mode, so a forgotten tap does not eat a later key.
+~*LButton::StopLeader()
+~*RButton::StopLeader()
+~*MButton::StopLeader()
 
 ; macOS-style Command key, swapped with the left Ctrl key. On the Mac layout the
 ; Command key sits where the Windows key sits (right of Alt) and is the primary
@@ -78,30 +108,11 @@ LAlt::LCtrl
 LWin::LAlt
 ~*LCtrl up::LCtrlRelease()
 
-; Keep the native Win+Shift+S region screenshot. After the remap above a physical
-; Win+Shift+S arrives as Ctrl+Shift+S, so open the screen-snip overlay for that
-; combo. (A literal Ctrl+Shift+S also opens it, which is unused on the Mac layout.)
-^+s::Run("ms-screenclip:")
-
 ; Spotlight-style search on the Ctrl key. Ctrl now sends Win, so the keystroke
 ; arrives as Win+Space -- natively that cycles the input language, which is unused
 ; here. Send a real Win+S instead to open Windows Search. To point this at
 ; PowerToys Run instead, change the Send to "!{Space}".
 #Space::Send("#s")
-
-; Restore Windows clipboard history. Normally Win+V, but Win now sends Ctrl so
-; Win+V is paste. Bind it to Win+Shift+C, which arrives as Ctrl+Shift+C after the
-; remap. Send("#v") emits a real Win+V -- the # modifier in a Send is applied
-; directly and is not re-caught by the LWin remap. (Literal Ctrl+Shift+C too.)
-;
-; Scoped off inside a terminal: Ctrl+Shift+C is that app's own copy binding, and
-; swallowing it globally would leave no way to copy there. Left unhooked in
-; terminals so the keystroke reaches the app untouched.
-;
-; Since Ctrl now sends Win, a physical Ctrl+V also opens the history natively.
-#HotIf !TerminalActive()
-^+c::Send("#v")
-#HotIf
 
 ; ---------------------------------------------------------------------------
 ; Terminal modifier swap (features/terminal_modifier_swap)
@@ -163,12 +174,308 @@ RegisterLCtrlAsWin() {
 
 LCtrlAsWinKey(key, *) {
     global LCtrlAsWin
+    ; Win+1-9 switches GlazeWM desktop; Win+Shift+1-9 sends the window there and
+    ; follows it, as Hyprland's SUPER keys do.
+    if key ~= "^[1-9]$" && GlazeConnected() {
+        if !LCtrlAsWin
+            Send("{Blind}{LCtrl up}")
+        if GetKeyState("Shift")
+            Glaze("move --workspace " . key)
+        Glaze("focus --workspace " . key)
+        return
+    }
     if !LCtrlAsWin {
         LCtrlAsWin := true
         Send("{Blind}{LCtrl up}{LWin down}")
     }
     ; Win+Space cycles the input language; Win+S opens Windows Search.
     Send("{Blind}{" (key = "Space" ? "s" : key) "}")
+}
+
+; GlazeWM tiles windows. Start it with the script when it is unpacked in
+; ~/.local/glazewm. Its own keys are off (config.yaml); the script drives it
+; over its websocket on 127.0.0.1:6123 (Glaze below): tap Right Alt then an
+; arrow focuses that way, hold Right Alt+arrow moves the window that way.
+StartGlaze() {
+    global GlazeDir, GlazeConfig
+    wm := GlazeDir . "\glazewm.exe"
+    if FileExist(wm) && FileExist(GlazeConfig) && !GlazePid()
+        Run(Format('"{1}" start --config "{2}"', wm, GlazeConfig), , "Hide")
+}
+
+; GlazeWM can lose its IPC server and stop tiling while the process lives on.
+; glaze-heal.ahk restarts it. It runs as its own process: each check blocks for
+; ~300 ms, and on this thread that stalls the keyboard hook and drops key-ups.
+StartGlazeHeal() {
+    heal := A_ScriptDir . "\glaze-heal.ahk"
+    if FileExist(heal)
+        Run(Format('"{1}" "{2}"', A_AhkPath, heal))
+}
+
+; The PID of the window manager itself. The CLI is also named glazewm.exe, so
+; match on the full path.
+GlazePid() {
+    global GlazeDir
+    wm := GlazeDir . "\glazewm.exe"
+    for p in ComObjGet("winmgmts:").ExecQuery("SELECT ProcessId, ExecutablePath FROM Win32_Process WHERE Name = 'glazewm.exe'")
+        if p.ExecutablePath = wm
+            return p.ProcessId
+    return 0
+}
+
+Glaze(command, *) {
+    return GlazeSend("command " . command)
+}
+
+; GlazeWM's CLI is a process per call, and every process start here costs
+; 150-500 ms (the security software checks each one). One socket kept open
+; answers in about 1 ms. Returns the reply, or "" when GlazeWM is not there.
+; Waits are capped at 250 ms, so a hung GlazeWM cannot hold the keyboard hook
+; for long; after a failure the socket is not retried for 2 s.
+GlazeSend(message) {
+    global GlazeSock
+    Loop 2 {   ; a GlazeWM restart leaves a dead socket: reconnect once
+        if !GlazeConnected()
+            return ""
+        if WsSend(GlazeSock, message) && (reply := WsRecv(GlazeSock)) != ""
+            return reply
+        GlazeClose()
+    }
+    return ""
+}
+
+GlazeConnected() {
+    global GlazeSock, GlazeRetryAt
+    static wsa := DllCall("ws2_32\WSAStartup", "UShort", 0x202, "Ptr", Buffer(512))
+    if GlazeSock != -1
+        return true
+    if A_TickCount < GlazeRetryAt
+        return false
+    GlazeRetryAt := A_TickCount + 2000
+    s := DllCall("ws2_32\socket", "Int", 2, "Int", 1, "Int", 6, "Ptr")   ; IPv4 TCP
+    if s = -1
+        return false
+    ; Connect without blocking: on Windows a refused connect to localhost takes
+    ; about 2 s to fail, so give it 100 ms.
+    DllCall("ws2_32\ioctlsocket", "Ptr", s, "Int", 0x8004667E, "UInt*", 1)   ; FIONBIO on
+    addr := Buffer(16, 0)
+    NumPut("UShort", 2, "UShort", 0xEB17, "UInt", 0x0100007F, addr)        ; 127.0.0.1:6123
+    DllCall("ws2_32\connect", "Ptr", s, "Ptr", addr, "Int", 16)
+    writable := Buffer(16, 0), failed := Buffer(16, 0)
+    NumPut("UInt", 1, "UInt", 0, "Ptr", s, writable)
+    NumPut("UInt", 1, "UInt", 0, "Ptr", s, failed)
+    timeout := Buffer(8, 0)
+    NumPut("Int", 0, "Int", 100000, timeout)
+    DllCall("ws2_32\select", "Int", 0, "Ptr", 0, "Ptr", writable, "Ptr", failed, "Ptr", timeout)
+    if !NumGet(writable, "UInt") {
+        DllCall("ws2_32\closesocket", "Ptr", s)
+        return false
+    }
+    DllCall("ws2_32\ioctlsocket", "Ptr", s, "Int", 0x8004667E, "UInt*", 0)   ; FIONBIO off
+    DllCall("ws2_32\setsockopt", "Ptr", s, "Int", 6, "Int", 1, "Int*", 1, "Int", 4)               ; TCP_NODELAY
+    DllCall("ws2_32\setsockopt", "Ptr", s, "Int", 0xFFFF, "Int", 0x1005, "Int*", 250, "Int", 4)   ; SO_SNDTIMEO
+    DllCall("ws2_32\setsockopt", "Ptr", s, "Int", 0xFFFF, "Int", 0x1006, "Int*", 250, "Int", 4)   ; SO_RCVTIMEO
+    request := "GET / HTTP/1.1`r`nHost: 127.0.0.1:6123`r`nUpgrade: websocket`r`nConnection: Upgrade`r`n"
+        . "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==`r`nSec-WebSocket-Version: 13`r`n`r`n"
+    out := Buffer(StrPut(request, "UTF-8") - 1)
+    StrPut(request, out, out.Size, "UTF-8")
+    head := ""
+    if SockSendAll(s, out) {
+        one := Buffer(1)
+        while !InStr(head, "`r`n`r`n") && StrLen(head) < 4096 && SockRecvAll(s, one)
+            head .= Chr(NumGet(one, "UChar"))
+    }
+    if !InStr(head, " 101 ") || !InStr(head, "`r`n`r`n") {
+        DllCall("ws2_32\closesocket", "Ptr", s)
+        return false
+    }
+    GlazeSock := s
+    GlazeRetryAt := 0
+    return true
+}
+
+GlazeClose() {
+    global GlazeSock
+    if GlazeSock != -1
+        DllCall("ws2_32\closesocket", "Ptr", GlazeSock)
+    GlazeSock := -1
+}
+
+; One text frame. A client frame must be masked; a zero mask leaves the bytes
+; as they are.
+WsSend(s, text) {
+    size := StrPut(text, "UTF-8") - 1
+    head := size < 126 ? 6 : 8
+    frame := Buffer(head + size, 0)
+    NumPut("UChar", 0x81, frame, 0)
+    if size < 126
+        NumPut("UChar", 0x80 | size, frame, 1)
+    else
+        NumPut("UChar", 0x80 | 126, "UChar", size >> 8, "UChar", size & 0xFF, frame, 1)
+    StrPut(text, frame.Ptr + head, size, "UTF-8")
+    return SockSendAll(s, frame)
+}
+
+; The next text message, or "" when the socket fails. Answers a ping on the way.
+WsRecv(s) {
+    text := ""
+    hdr := Buffer(8)
+    loop {
+        if !SockRecvAll(s, hdr, 2)
+            return ""
+        b0 := NumGet(hdr, 0, "UChar"), size := NumGet(hdr, 1, "UChar") & 0x7F
+        if size = 126 {
+            if !SockRecvAll(s, hdr, 2)
+                return ""
+            size := NumGet(hdr, 0, "UChar") << 8 | NumGet(hdr, 1, "UChar")
+        } else if size = 127 {
+            if !SockRecvAll(s, hdr, 8)
+                return ""
+            size := 0
+            Loop 8
+                size := size << 8 | NumGet(hdr, A_Index - 1, "UChar")
+        }
+        payload := Buffer(Max(size, 1))
+        if size && !SockRecvAll(s, payload, size)
+            return ""
+        opcode := b0 & 0x0F
+        if opcode = 0x8                                    ; close
+            return ""
+        if opcode = 0x9 {                                  ; ping -> pong
+            pong := Buffer(6 + size, 0)
+            NumPut("UChar", 0x8A, "UChar", 0x80 | size, pong)
+            if size
+                DllCall("RtlMoveMemory", "Ptr", pong.Ptr + 6, "Ptr", payload, "UPtr", size)
+            SockSendAll(s, pong)
+            continue
+        }
+        if opcode = 0x1 || opcode = 0x0
+            text .= StrGet(payload, size, "UTF-8")
+        if b0 & 0x80 && opcode != 0xA                      ; final frame
+            return text
+    }
+}
+
+SockSendAll(s, buf) {
+    sent := 0
+    while sent < buf.Size {
+        n := DllCall("ws2_32\send", "Ptr", s, "Ptr", buf.Ptr + sent, "Int", buf.Size - sent, "Int", 0)
+        if n <= 0
+            return false
+        sent += n
+    }
+    return true
+}
+
+SockRecvAll(s, buf, size := 0) {
+    size := size || buf.Size
+    got := 0
+    while got < size {
+        n := DllCall("ws2_32\recv", "Ptr", s, "Ptr", buf.Ptr + got, "Int", size - got, "Int", 0)
+        if n <= 0
+            return false
+        got += n
+    }
+    return true
+}
+
+; Spiral tiling, as Hyprland's dwindle: each time a window gets focus, the next
+; window splits it along its longer side.
+;
+; Windows' foreground event, not the shell hook: a window GlazeWM brings back
+; from another desktop gets no shell "activated" message.
+WatchFocusForSpiral() {
+    static callback := CallbackCreate(SpiralOnFocus, "F", 7)
+    DllCall("SetWinEventHook", "UInt", 0x0003, "UInt", 0x0003, "Ptr", 0, "Ptr", callback   ; EVENT_SYSTEM_FOREGROUND
+        , "UInt", 0, "UInt", 0, "UInt", 0)                                             ; WINEVENT_OUTOFCONTEXT
+}
+
+SpiralOnFocus(hook, event, hwnd, *) {
+    if !hwnd
+        return
+    RecordFocus(hwnd)
+    if GlazeConnected()
+        SetTimer(SpiralSplit.Bind(hwnd), -100)
+}
+
+; Most recent first, for Right Alt+Enter across desktops.
+RecordFocus(hwnd) {
+    global FocusHistory
+    for index, h in FocusHistory
+        if h = hwnd {
+            FocusHistory.RemoveAt(index)
+            break
+        }
+    FocusHistory.InsertAt(1, hwnd)
+    if FocusHistory.Length > 30
+        FocusHistory.Pop()
+}
+
+SpiralSplit(hwnd) {
+    try WinGetPos(, , &w, &h, hwnd)
+    catch
+        return
+    Glaze("set-tiling-direction " . (w >= h ? "horizontal" : "vertical"))
+}
+
+; Right Alt+Shift+letter opens the app alone on the first empty desktop and
+; goes there. An app already alone on its desktop stays where it is.
+IsolateApp(key, *) {
+    if !ReadApp(key)
+        return
+    SwitchMappedApp(key)
+    if !GlazeConnected() || !hwnd := WinExist("A")
+        return
+    ; Find the app's desktop by its window handle. A window just launched may
+    ; take GlazeWM a moment to pick up.
+    Loop 10 {
+        glazed := GlazeWindows()
+        if glazed.Has(hwnd)
+            break
+        Sleep(30)
+    }
+    if !glazed.Has(hwnd)
+        return
+    used := Map()
+    for , w in glazed
+        used[w.Desktop] := (used.Has(w.Desktop) ? used[w.Desktop] : 0) + 1
+    if used[glazed[hwnd].Desktop] <= 1
+        return
+    Loop 9 {
+        if !used.Has(A_Index . "") {
+            ; By id, since GlazeWM may not have seen the focus change yet.
+            Glaze("--id " . glazed[hwnd].Id . " move --workspace " . A_Index)
+            Glaze("focus --workspace " . A_Index)
+            return
+        }
+    }
+}
+
+; Every window GlazeWM manages: handle -> {Id, Desktop, Minimized}.
+GlazeWindows() {
+    found := Map()
+    if !GlazeConnected()
+        return found
+    for part in StrSplit(GlazeSend("query workspaces"), '{"type":"workspace"') {
+        if !RegExMatch(part, '^,"id":"[^"]+","name":"([^"]+)"', &ws)
+            continue
+        pos := 1
+        while pos := RegExMatch(part, '\{"type":"window","id":"([0-9a-f-]+)".*?"state":\{"type":"(\w+)".*?"handle":(\d+),"title"', &w, pos) {
+            found[w[3] + 0] := {Id: w[1], Desktop: ws[1], Minimized: w[2] = "minimized"}
+            pos += w.Len
+        }
+    }
+    return found
+}
+
+; GlazeWM's focus by id neither switches desktop nor brings back a minimized
+; window, so do both first. False when GlazeWM does not answer.
+GlazeFocus(w) {
+    if Glaze("focus --workspace " . w.Desktop) = ""
+        return false
+    if w.Minimized
+        Glaze("--id " . w.Id . " toggle-minimized")
+    return Glaze("focus --container-id " . w.Id) != ""
 }
 
 ; A lone tap of the left Ctrl key opens Start, as a Win tap would.
@@ -207,38 +514,152 @@ ReadBool(section, key, defaultValue) {
 }
 
 RegisterAppHotkeys() {
-    ; Right Alt+0 jumps back to the previous app instead of a mapping.
-    Hotkey(">!0", SwitchToPreviousApp)
-    Hotkey(">!+0", SwitchToPreviousApp)
+    ; Right Alt is the app-switcher trigger: it sits where the Mac right
+    ; Command key does, so Right Alt+key mirrors the macOS "rcmd" switcher.
+    Hotkey(">!Enter", SwitchToPreviousApp)
+    Hotkey(">!+Enter", SwitchToPreviousApp)
+    for dir in ["Left", "Right", "Up", "Down"]
+        Hotkey(">!" . dir, Glaze.Bind("move --direction " . StrLower(dir)))
 
-    keys := "abcdefghijklmnopqrstuvwxyz123456789"
-    Loop Parse, keys {
-        key := A_LoopField
-        ; Right Alt is the app-switcher trigger: it sits where the Mac right
-        ; Command key does, so Right Alt+key mirrors the macOS "rcmd" switcher.
-        ; Add Ctrl (Right Alt+Ctrl+key) to assign the focused app to a key.
-        Hotkey(">!" . key, SwitchMappedApp.Bind(key))
-        Hotkey(">!+" . key, SwitchMappedApp.Bind(key))
-        Hotkey("^>!" . key, AssignActiveApp.Bind(key))
-        Hotkey("^>!+" . key, AssignActiveApp.Bind(key))
+    Loop 9 {
+        Hotkey(">!" . A_Index, JumpToTab.Bind(A_Index))
+        Hotkey(">!+" . A_Index, JumpToTab.Bind(A_Index))
     }
+
+    Loop Parse, "abcdefghijklmnopqrstuvwxyz" {
+        key := A_LoopField
+        Hotkey(">!" . key, SwitchMappedApp.Bind(key))
+        Hotkey(">!+" . key, IsolateApp.Bind(key))
+    }
+    for key, action in KeyActions() {
+        Hotkey(">!" . key, action)
+        Hotkey(">!+" . key, action)
+    }
+    Hotkey(">!+Space", Glaze.Bind("toggle-floating --centered"))   ; out of the grid and back
 }
 
-ReadApp(key) {
-    global AppsIni
-    raw := IniRead(AppsIni, "apps", key, "")
-    if raw = ""
-        return false
+; Right Alt keys that run an action instead of opening an app. Wait mode reads
+; the same list.
+KeyActions() {
+    static actions := Map(
+        "v", OpenClipboardHistory,
+        "c", Capture,
+        "Space", OpenRaycast,
+        "Backspace", Glaze.Bind("toggle-minimized"))         ; the rest re-tile
+    return actions
+}
 
-    parts := StrSplit(raw, "|")
-    if parts.Length < 3
-        return false
+; Raycast is opened by its own hotkeys, set in Raycast to combos nobody types:
+; Ctrl+Alt+Shift+Space for Raycast, Ctrl+Alt+Shift+V for Clipboard History. A
+; raycast:// link starts a second Raycast to pass the link on, 2-4 s here, and
+; Raycast ignores a sent Win tap.
+OpenRaycast(*) {
+    Send("^!+{Space}")
+}
 
-    return {
-        Name: Trim(parts[1]),
-        Criteria: Trim(parts[2]),
-        Command: ExpandEnv(Trim(parts[3]))
+OpenClipboardHistory(*) {
+    Send("^!+v")
+}
+
+; ShareX region capture, copied and saved, never uploaded (set in ShareX's
+; ApplicationConfig.json). Press ShareX's own Ctrl+PrintScreen when it runs:
+; starting ShareX.exe to pass the job on takes 0.5-1.5 s here, the hotkey about
+; 0.25 s. The Windows snip stands in when ShareX is missing.
+Capture(*) {
+    global ShareX
+    if ProcessExist("ShareX.exe")
+        Send("^{PrintScreen}")
+    else
+        Run(FileExist(ShareX) ? '"' . ShareX . '" -RectangleRegion' : "ms-screenclip:")
+}
+
+; Wait mode: a lone Right Alt tap waits for the next key, with no time limit,
+; and runs it as Right Alt+key. A key with no action, Escape, a click or a
+; second tap ends it, and the key is dropped. A key pressed with Ctrl, Alt or
+; Win goes through, so Ctrl+C still copies. A second tap within 400 ms opens
+; Raycast.
+;
+; The hook suppresses every key until the callback has read it, so a fast key
+; never reaches the app first.
+StartLeader() {
+    global Leader, LeaderStart
+    if Leader {
+        quick := A_TickCount - LeaderStart < 400
+        StopLeader()
+        if quick
+            OpenRaycast()
+        return
     }
+    ih := InputHook("L0")
+    ih.KeyOpt("{All}", "NS")
+    ih.KeyOpt("{LShift}{RShift}{LCtrl}{RCtrl}{LAlt}{RAlt}{LWin}{RWin}", "-N-S")
+    ih.OnKeyDown := LeaderKey
+    Leader := ih
+    LeaderStart := A_TickCount
+    ih.Start()
+}
+
+StopLeader(*) {
+    global Leader
+    if !Leader
+        return
+    ih := Leader
+    Leader := ""
+    ih.Stop()
+}
+
+LeaderKey(ih, vk, sc) {
+    global Leader
+    keyName := Format("vk{:X}sc{:03X}", vk, sc)
+    ; The hook held this key before the wait ended, so it belongs to the app.
+    if Leader != ih
+        return Send("{Blind}{" . keyName . "}")
+    StopLeader()
+    if GetKeyState("Ctrl") || GetKeyState("LAlt") || GetKeyState("LWin") || GetKeyState("RWin")
+        return Send("{Blind}{" . keyName . "}")
+    if sc = 0x1C                                     ; Enter
+        return SwitchToPreviousApp()
+    name := GetKeyName(keyName)
+    if name ~= "^(Left|Right|Up|Down)$"
+        return Glaze("focus --direction " . StrLower(name))
+    actions := KeyActions()
+    if actions.Has(name)
+        return actions[name]()
+    if sc >= 0x02 && sc <= 0x0A                      ; 1-9 on the top row
+        return JumpToTab(sc - 1)
+    key := StrLower(GetKeyName(keyName))
+    if RegExMatch(key, "^[a-z]$") && ReadApp(key)
+        GetKeyState("Shift") ? IsolateApp(key) : SwitchMappedApp(key)
+}
+
+; Right Alt+1-9 brings Brave (the "a" app) to the front on tab N; 9 is the
+; last tab. It never cycles Brave windows, so the tab lands in the window in use.
+JumpToTab(n, *) {
+    app := ReadApp("a")
+    if !app
+        return
+    if !WinActive(app.Criteria) {
+        SwitchMappedApp("a")
+        if !WinActive(app.Criteria) && !WinWaitActive(app.Criteria, , 1)
+            return
+    }
+    Send("^" . n)
+}
+
+; apps.ini is read once; reload the script after editing it.
+ReadApp(key) {
+    global AppsIni, Apps
+    if Apps.Has(key)
+        return Apps[key]
+    app := false
+    parts := StrSplit(IniRead(AppsIni, "apps", key, ""), "|")
+    if parts.Length >= 3
+        app := {
+            Name: Trim(parts[1]),
+            Criteria: Trim(parts[2]),
+            Command: ExpandEnv(Trim(parts[3]))
+        }
+    return Apps[key] := app
 }
 
 ExpandEnv(text) {
@@ -248,85 +669,55 @@ ExpandEnv(text) {
     return StrGet(buf)
 }
 
+; An unmapped key does nothing.
 SwitchMappedApp(key, *) {
     app := ReadApp(key)
-    if app {
-        if app.Criteria = "" {
-            Notify("No window criteria configured for " . app.Name)
-            return
-        }
-
-        try windows := WinGetList(app.Criteria)
-        catch Error as err {
-            Notify("Invalid window criteria for " . app.Name . ": " . err.Message)
-            return
-        }
-        if windows.Length {
-            CycleWindows(windows)
-            return
-        }
-
-        if app.Command = "" {
-            Notify("No launch command configured for " . app.Name)
-            return
-        }
-
-        try {
-            Run(app.Command)
-            hwnd := WinWait(app.Criteria, , 15)
-            if hwnd
-                WinActivate(hwnd)
-            else
-                Notify("Started " . app.Name . ", but no matching window appeared")
-        } catch Error as err {
-            Notify("Could not start " . app.Name . ": " . err.Message)
-        }
+    if !app
+        return
+    if app.Criteria = "" {
+        Notify("No window criteria configured for " . app.Name)
         return
     }
 
-    windows := FindDynamicWindows(key)
-    if !windows.Length {
-        Notify("No mapping or running app for Right Alt+" . StrUpper(key))
+    ; GlazeWM hides the windows on other desktops, so look at hidden windows
+    ; too, and keep the hidden ones GlazeWM manages: those it can bring back.
+    ; The rest are an app's own hidden helper windows.
+    glazed := GlazeWindows()
+    DetectHiddenWindows(true)
+    try found := WinGetList(app.Criteria)
+    catch Error as err {
+        DetectHiddenWindows(false)
+        Notify("Invalid window criteria for " . app.Name . ": " . err.Message)
         return
     }
-    CycleWindows(windows)
-}
+    DetectHiddenWindows(false)
+    windows := []
+    for hwnd in found
+        if glazed.Has(hwnd) || DllCall("IsWindowVisible", "Ptr", hwnd)
+            windows.Push(hwnd)
+    if windows.Length {
+        CycleWindows(windows, glazed)
+        return
+    }
 
-AssignActiveApp(key, *) {
-    global AppsIni
-    hwnd := WinExist("A")
-    if !hwnd {
-        Notify("No active window to assign")
+    if app.Command = "" {
+        Notify("No launch command configured for " . app.Name)
         return
     }
 
     try {
-        processName := WinGetProcessName(hwnd)
-        processPath := WinGetProcessPath(hwnd)
-        displayName := RegExReplace(processName, "i)\.exe$")
-        criteria := "ahk_exe " . processName
-        command := Chr(34) . processPath . Chr(34)
-        IniWrite(displayName . "|" . criteria . "|" . command, AppsIni, "apps", key)
-        Notify("Assigned Right Alt+" . StrUpper(key) . " to " . displayName)
+        Run(app.Command)
+        hwnd := WinWait(app.Criteria, , 15)
+        if hwnd
+            WinActivate(hwnd)
+        else
+            Notify("Started " . app.Name . ", but no matching window appeared")
     } catch Error as err {
-        Notify("Could not assign app: " . err.Message)
+        Notify("Could not start " . app.Name . ": " . err.Message)
     }
 }
 
-FindDynamicWindows(key) {
-    matches := []
-    for hwnd in WinGetList() {
-        try {
-            processName := StrLower(WinGetProcessName(hwnd))
-            title := WinGetTitle(hwnd)
-            if title != "" && SubStr(processName, 1, 1) = StrLower(key)
-                matches.Push(hwnd)
-        }
-    }
-    return matches
-}
-
-CycleWindows(windows) {
+CycleWindows(windows, glazed) {
     active := WinExist("A")
     target := windows[1]
 
@@ -337,6 +728,9 @@ CycleWindows(windows) {
         }
     }
 
+    ; GlazeWM knows the window's desktop, so let it switch there and focus it.
+    if glazed.Has(target) && GlazeFocus(glazed[target])
+        return
     try {
         if WinGetMinMax(target) = -1
             WinRestore(target)
@@ -344,18 +738,28 @@ CycleWindows(windows) {
     }
 }
 
-; Right Alt+0 focuses the topmost Alt+Tab window of another app. WinGetList
-; returns windows in z-order, so that is the app used last before this one.
+; Right Alt+Enter focuses the last-used window of another app, on any desktop.
+; The focus history comes first: GlazeWM hides the windows on other desktops,
+; so z-order alone (WinGetList) only knows this desktop. It is the fallback.
 SwitchToPreviousApp(*) {
+    global FocusHistory
     active := WinExist("A")
     try activeProcess := WinGetProcessName(active)
     catch
         activeProcess := ""
-    for hwnd in WinGetList() {
-        if hwnd = active || !IsAltTabWindow(hwnd)
+    glazed := GlazeWindows()
+    candidates := FocusHistory.Clone()
+    for hwnd in WinGetList()
+        candidates.Push(hwnd)
+    for hwnd in candidates {
+        if hwnd = active || !DllCall("IsWindow", "Ptr", hwnd)
             continue
         try {
             if WinGetProcessName(hwnd) = activeProcess
+                continue
+            if glazed.Has(hwnd) && GlazeFocus(glazed[hwnd])
+                return
+            if !IsAltTabWindow(hwnd)
                 continue
             if WinGetMinMax(hwnd) = -1
                 WinRestore(hwnd)

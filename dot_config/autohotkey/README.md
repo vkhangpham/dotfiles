@@ -36,19 +36,11 @@ To remove only the startup shortcut:
   binding below. A lone Ctrl tap opens Start. The Ctrl key turns into Win only
   when the next key lands while it is physically held; a Ctrl sent by another
   program (Wispr Flow's Ctrl+V paste) passes as Ctrl. Right Ctrl, and any other
-  keyboard, still send a plain Ctrl. Set the Lofree to Windows mode: in Mac mode
+  keyboard, still send a plain Ctrl. Set the Lofree to Windows mode with Fn+N (Fn+M goes back to Mac): in Mac mode
   its Cmd keys report as Win, and Win+L locks the machine.
 - Ctrl+Space opens Windows Search, standing in for Spotlight. Ctrl sends Win, so
   the keystroke arrives as Win+Space (natively an input-language cycle, unused
   here) and the script turns it into a real Win+S.
-- Win+Shift+S opens Windows' native region screenshot UI. (Because Win sends
-  Ctrl, a literal Ctrl+Shift+S also opens it. The physical Ctrl key reaches the
-  same UI directly, since it now sends Win.)
-- Win+Shift+C opens the Windows clipboard history. Win+V is normally that, but
-  Win now sends Ctrl so Win+V pastes; this restores the history picker. (A
-  literal Ctrl+Shift+C also opens it. Clipboard history must be enabled in
-  Windows Settings.) This hotkey is scoped off inside a terminal, where
-  Ctrl+Shift+C is the app's own copy binding.
 - Inside a terminal, Cmd-style Win combos that the terminal puts on
   Ctrl+Shift are translated: Win+T new tab, Win+W close pane, Win+N new window,
   Win+F find. A physically pressed Ctrl is left alone, so shell readline keys
@@ -61,26 +53,42 @@ To remove only the startup shortcut:
   sends SIGINT.
 - Caps Lock sends Escape.
 - Escape sends Caps Lock (Wispr Flow push-to-talk) and leaves Caps Lock off.
-- Right Alt+letter/number switches to or launches the app in `apps.ini`. Right
-  Alt sits where the macOS right Command key does, mirroring the "rcmd" switcher.
-- Right Alt+Shift+letter/number does the same thing.
-- Right Alt+Ctrl+letter/number assigns the focused app to that key. This updates
-  the local `apps.ini`; copy the result back into the repo when it is worth
-  sharing across Windows machines.
-- Right Alt+0 jumps to the app used before this one; press again to jump back.
-- An unmapped Right Alt+key cycles running apps whose process starts with that
-  letter.
+- Right Alt+letter switches to or launches the app in `apps.ini`. Right Alt
+  sits where the macOS right Command key does, mirroring the "rcmd" switcher.
+  Right Alt+S is Slack, Right Alt+A is Brave.
+- Right Alt+Shift+letter opens the app alone on the first empty desktop and goes
+  there. An app already alone on its desktop stays put.
+- Right Alt+Enter jumps to the app used before this one; press again to jump back.
+- Right Alt+1-9 brings Brave to the front on tab N (9 is the last tab), so the
+  tab order is the key order.
+- An unmapped Right Alt+letter does nothing.
+- Wait mode: tap Right Alt on its own, then press the key whenever. A key with
+  no action, Escape, a click, or a second Right Alt tap ends it. Ctrl/Alt/Win
+  combos pass through, so Ctrl+C still copies.
+- Double tap Right Alt opens Raycast.
+- GlazeWM tiles windows (`../glazewm/config.yaml`). Tap Right Alt then an arrow
+  focuses the window that way; hold Right Alt+arrow moves the window that way.
+  Right Alt+Space takes the window out of the grid (floating) and back; Right
+  Alt+Backspace minimizes it so the rest re-tile.
+  Win (the left Ctrl key) + 1-9 switches desktop; add Shift to send the window
+  there and follow it. New windows spiral like Hyprland's dwindle: each one
+  splits the focused window along its longer side.
+  The script starts it from `~/.local/glazewm`, unpacked from the official MSI
+  with `msiexec /a` since this machine has no admin.
+- Right Alt+V opens Raycast's clipboard history.
+- Right Alt+C opens a ShareX region capture: copied and saved to
+  Documents/ShareX, never uploaded (ShareX's `ApplicationConfig.json`). Without
+  ShareX it falls back to the Windows snip.
 - The right Command key on a Mac-style keyboard reports as Right Win on Windows,
-  so it is remapped to Right Alt — that is what drives the switcher above. A lone
-  tap acts like a normal Alt.
+  so it is remapped to Right Alt — that is what drives the switcher above.
 
 The seeded app commands are best-effort executable names. Windows Store apps,
-portable installs, and differently named executables may need reassignment with
-Right Win+Alt+key or a manual edit to `apps.ini`.
+portable installs, and differently named executables may need a manual
+edit to `apps.ini`.
 
-There is no Ghostty build for Windows, so the two keys that open the main
-terminal on macOS (`0` and `m`) are mapped to Windows Terminal on the `archlinux`
-WSL profile. `p` stays on the PowerShell profile of the same app.
+There is no Ghostty build for Windows, so the key that opens the main
+terminal on macOS is mapped to Windows Terminal on the `archlinux` WSL profile
+(`m`).
 
 ## Win+L still locks the machine
 
