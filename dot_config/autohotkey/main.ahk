@@ -535,6 +535,7 @@ RegisterAppHotkeys() {
         Hotkey(">!" . key, action)
         Hotkey(">!+" . key, action)
     }
+    Hotkey(">!+Space", Glaze.Bind("toggle-floating --centered"))   ; out of the grid and back
 }
 
 ; Right Alt keys that run an action instead of opening an app. Wait mode reads
@@ -543,20 +544,33 @@ KeyActions() {
     static actions := Map(
         "v", OpenClipboardHistory,
         "c", Capture,
-        "Space", Glaze.Bind("toggle-floating --centered"),   ; out of the grid and back
+        "Space", OpenRaycast,
         "Backspace", Glaze.Bind("toggle-minimized"))         ; the rest re-tile
     return actions
 }
 
+; Raycast is opened by its own hotkeys, set in Raycast to combos nobody types:
+; Ctrl+Alt+Shift+Space for Raycast, Ctrl+Alt+Shift+V for Clipboard History. A
+; raycast:// link starts a second Raycast to pass the link on, 2-4 s here, and
+; Raycast ignores a sent Win tap.
+OpenRaycast(*) {
+    Send("^!+{Space}")
+}
+
 OpenClipboardHistory(*) {
-    Run("raycast://extensions/raycast/clipboard-history/clipboard-history")
+    Send("^!+v")
 }
 
 ; ShareX region capture, copied and saved, never uploaded (set in ShareX's
-; ApplicationConfig.json). The Windows snip stands in when ShareX is missing.
+; ApplicationConfig.json). Press ShareX's own Ctrl+PrintScreen when it runs:
+; starting ShareX.exe to pass the job on takes 0.5-1.5 s here, the hotkey about
+; 0.25 s. The Windows snip stands in when ShareX is missing.
 Capture(*) {
     global ShareX
-    Run(FileExist(ShareX) ? '"' . ShareX . '" -RectangleRegion' : "ms-screenclip:")
+    if ProcessExist("ShareX.exe")
+        Send("^{PrintScreen}")
+    else
+        Run(FileExist(ShareX) ? '"' . ShareX . '" -RectangleRegion' : "ms-screenclip:")
 }
 
 ; Wait mode: a lone Right Alt tap waits for the next key, with no time limit,
@@ -573,7 +587,7 @@ StartLeader() {
         quick := A_TickCount - LeaderStart < 400
         StopLeader()
         if quick
-            Run("raycast://")
+            OpenRaycast()
         return
     }
     ih := InputHook("L0")
