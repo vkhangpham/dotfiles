@@ -6,6 +6,7 @@ Persistent
 KeyHistory(500)   ; room to read back a few seconds of held keys after a glitch
 SetTitleMatchMode(2)
 SendMode("Input")
+SetWinDelay(-1)   ; the default sleeps 100 ms after every WinActivate and WinRestore
 SetWorkingDir(A_ScriptDir)
 
 global AppsIni := A_ScriptDir . "\apps.ini"
@@ -20,6 +21,9 @@ global LeaderStart := 0      ; A_TickCount of the tap that started it
 global GlazeDir := EnvGet("USERPROFILE") . "\.local\glazewm"
 global GlazeConfig := EnvGet("USERPROFILE") . "\.config\glazewm\config.yaml"
 global ShareX := EnvGet("LOCALAPPDATA") . "\Programs\ShareX\ShareX.exe"
+global GlazeSock := -1       ; the open socket to GlazeWM, -1 while closed
+global GlazeRetryAt := 0     ; A_TickCount before which a failed connect is not retried
+global Apps := Map()         ; apps.ini, read once; ReadApp
 
 ; Processes that count as a terminal for the Cmd-style swap below. The macOS half
 ; of this repo uses Ghostty, which has no Windows build, so Windows Terminal is
@@ -171,11 +175,11 @@ LCtrlAsWinKey(key, *) {
     global LCtrlAsWin
     ; Win+1-9 switches GlazeWM desktop; Win+Shift+1-9 sends the window there and
     ; follows it, as Hyprland's SUPER keys do.
-    if key ~= "^[1-9]$" && ProcessExist("glazewm.exe") {
+    if key ~= "^[1-9]$" && GlazeConnected() {
         if !LCtrlAsWin
             Send("{Blind}{LCtrl up}")
         if GetKeyState("Shift")
-            Glaze("move --workspace " . key, true)
+            Glaze("move --workspace " . key)
         Glaze("focus --workspace " . key)
         return
     }
@@ -189,8 +193,8 @@ LCtrlAsWinKey(key, *) {
 
 ; GlazeWM tiles windows. Start it with the script when it is unpacked in
 ; ~/.local/glazewm. Its own keys are off (config.yaml); the script drives it
-; through the CLI: tap Right Alt then an arrow focuses that way, hold Right
-; Alt+arrow moves the window that way. The CLI talks to 127.0.0.1:6123.
+; over its websocket on 127.0.0.1:6123 (Glaze below): tap Right Alt then an
+; arrow focuses that way, hold Right Alt+arrow moves the window that way.
 StartGlaze() {
     global GlazeDir, GlazeConfig
     wm := GlazeDir . "\glazewm.exe"
@@ -218,10 +222,160 @@ GlazePid() {
     return 0
 }
 
-Glaze(command, wait := false, *) {
-    global GlazeDir
-    cmd := Format('"{1}\cli\glazewm.exe" command {2}', GlazeDir, command)
-    wait ? RunWait(cmd, , "Hide") : Run(cmd, , "Hide")
+Glaze(command, *) {
+    return GlazeSend("command " . command)
+}
+
+; GlazeWM's CLI is a process per call, and every process start here costs
+; 150-500 ms (the security software checks each one). One socket kept open
+; answers in about 1 ms. Returns the reply, or "" when GlazeWM is not there.
+; Waits are capped at 250 ms, so a hung GlazeWM cannot hold the keyboard hook
+; for long; after a failure the socket is not retried for 2 s.
+GlazeSend(message) {
+    global GlazeSock
+    Loop 2 {   ; a GlazeWM restart leaves a dead socket: reconnect once
+        if !GlazeConnected()
+            return ""
+        if WsSend(GlazeSock, message) && (reply := WsRecv(GlazeSock)) != ""
+            return reply
+        GlazeClose()
+    }
+    return ""
+}
+
+GlazeConnected() {
+    global GlazeSock, GlazeRetryAt
+    static wsa := DllCall("ws2_32\WSAStartup", "UShort", 0x202, "Ptr", Buffer(512))
+    if GlazeSock != -1
+        return true
+    if A_TickCount < GlazeRetryAt
+        return false
+    GlazeRetryAt := A_TickCount + 2000
+    s := DllCall("ws2_32\socket", "Int", 2, "Int", 1, "Int", 6, "Ptr")   ; IPv4 TCP
+    if s = -1
+        return false
+    ; Connect without blocking: on Windows a refused connect to localhost takes
+    ; about 2 s to fail, so give it 100 ms.
+    DllCall("ws2_32\ioctlsocket", "Ptr", s, "Int", 0x8004667E, "UInt*", 1)   ; FIONBIO on
+    addr := Buffer(16, 0)
+    NumPut("UShort", 2, "UShort", 0xEB17, "UInt", 0x0100007F, addr)        ; 127.0.0.1:6123
+    DllCall("ws2_32\connect", "Ptr", s, "Ptr", addr, "Int", 16)
+    writable := Buffer(16, 0), failed := Buffer(16, 0)
+    NumPut("UInt", 1, "UInt", 0, "Ptr", s, writable)
+    NumPut("UInt", 1, "UInt", 0, "Ptr", s, failed)
+    timeout := Buffer(8, 0)
+    NumPut("Int", 0, "Int", 100000, timeout)
+    DllCall("ws2_32\select", "Int", 0, "Ptr", 0, "Ptr", writable, "Ptr", failed, "Ptr", timeout)
+    if !NumGet(writable, "UInt") {
+        DllCall("ws2_32\closesocket", "Ptr", s)
+        return false
+    }
+    DllCall("ws2_32\ioctlsocket", "Ptr", s, "Int", 0x8004667E, "UInt*", 0)   ; FIONBIO off
+    DllCall("ws2_32\setsockopt", "Ptr", s, "Int", 6, "Int", 1, "Int*", 1, "Int", 4)               ; TCP_NODELAY
+    DllCall("ws2_32\setsockopt", "Ptr", s, "Int", 0xFFFF, "Int", 0x1005, "Int*", 250, "Int", 4)   ; SO_SNDTIMEO
+    DllCall("ws2_32\setsockopt", "Ptr", s, "Int", 0xFFFF, "Int", 0x1006, "Int*", 250, "Int", 4)   ; SO_RCVTIMEO
+    request := "GET / HTTP/1.1`r`nHost: 127.0.0.1:6123`r`nUpgrade: websocket`r`nConnection: Upgrade`r`n"
+        . "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==`r`nSec-WebSocket-Version: 13`r`n`r`n"
+    out := Buffer(StrPut(request, "UTF-8") - 1)
+    StrPut(request, out, out.Size, "UTF-8")
+    head := ""
+    if SockSendAll(s, out) {
+        one := Buffer(1)
+        while !InStr(head, "`r`n`r`n") && StrLen(head) < 4096 && SockRecvAll(s, one)
+            head .= Chr(NumGet(one, "UChar"))
+    }
+    if !InStr(head, " 101 ") || !InStr(head, "`r`n`r`n") {
+        DllCall("ws2_32\closesocket", "Ptr", s)
+        return false
+    }
+    GlazeSock := s
+    GlazeRetryAt := 0
+    return true
+}
+
+GlazeClose() {
+    global GlazeSock
+    if GlazeSock != -1
+        DllCall("ws2_32\closesocket", "Ptr", GlazeSock)
+    GlazeSock := -1
+}
+
+; One text frame. A client frame must be masked; a zero mask leaves the bytes
+; as they are.
+WsSend(s, text) {
+    size := StrPut(text, "UTF-8") - 1
+    head := size < 126 ? 6 : 8
+    frame := Buffer(head + size, 0)
+    NumPut("UChar", 0x81, frame, 0)
+    if size < 126
+        NumPut("UChar", 0x80 | size, frame, 1)
+    else
+        NumPut("UChar", 0x80 | 126, "UChar", size >> 8, "UChar", size & 0xFF, frame, 1)
+    StrPut(text, frame.Ptr + head, size, "UTF-8")
+    return SockSendAll(s, frame)
+}
+
+; The next text message, or "" when the socket fails. Answers a ping on the way.
+WsRecv(s) {
+    text := ""
+    hdr := Buffer(8)
+    loop {
+        if !SockRecvAll(s, hdr, 2)
+            return ""
+        b0 := NumGet(hdr, 0, "UChar"), size := NumGet(hdr, 1, "UChar") & 0x7F
+        if size = 126 {
+            if !SockRecvAll(s, hdr, 2)
+                return ""
+            size := NumGet(hdr, 0, "UChar") << 8 | NumGet(hdr, 1, "UChar")
+        } else if size = 127 {
+            if !SockRecvAll(s, hdr, 8)
+                return ""
+            size := 0
+            Loop 8
+                size := size << 8 | NumGet(hdr, A_Index - 1, "UChar")
+        }
+        payload := Buffer(Max(size, 1))
+        if size && !SockRecvAll(s, payload, size)
+            return ""
+        opcode := b0 & 0x0F
+        if opcode = 0x8                                    ; close
+            return ""
+        if opcode = 0x9 {                                  ; ping -> pong
+            pong := Buffer(6 + size, 0)
+            NumPut("UChar", 0x8A, "UChar", 0x80 | size, pong)
+            if size
+                DllCall("RtlMoveMemory", "Ptr", pong.Ptr + 6, "Ptr", payload, "UPtr", size)
+            SockSendAll(s, pong)
+            continue
+        }
+        if opcode = 0x1 || opcode = 0x0
+            text .= StrGet(payload, size, "UTF-8")
+        if b0 & 0x80 && opcode != 0xA                      ; final frame
+            return text
+    }
+}
+
+SockSendAll(s, buf) {
+    sent := 0
+    while sent < buf.Size {
+        n := DllCall("ws2_32\send", "Ptr", s, "Ptr", buf.Ptr + sent, "Int", buf.Size - sent, "Int", 0)
+        if n <= 0
+            return false
+        sent += n
+    }
+    return true
+}
+
+SockRecvAll(s, buf, size := 0) {
+    size := size || buf.Size
+    got := 0
+    while got < size {
+        n := DllCall("ws2_32\recv", "Ptr", s, "Ptr", buf.Ptr + got, "Int", size - got, "Int", 0)
+        if n <= 0
+            return false
+        got += n
+    }
+    return true
 }
 
 ; Spiral tiling, as Hyprland's dwindle: each time a window gets focus, the next
@@ -232,7 +386,7 @@ WatchFocusForSpiral() {
 }
 
 SpiralOnFocus(event, hwnd, *) {
-    if (event = 4 || event = 0x8004) && ProcessExist("glazewm.exe")   ; window activated
+    if (event = 4 || event = 0x8004) && GlazeConnected()   ; window activated
         SetTimer(SpiralSplit.Bind(hwnd), -100)
 }
 
@@ -246,37 +400,48 @@ SpiralSplit(hwnd) {
 ; Right Alt+Shift+letter opens the app alone on the first empty desktop and
 ; goes there. An app already alone on its desktop stays where it is.
 IsolateApp(key, *) {
-    global GlazeDir
     if !ReadApp(key)
         return
     SwitchMappedApp(key)
-    if !ProcessExist("glazewm.exe")
+    if !GlazeConnected() || !hwnd := WinExist("A")
         return
-    Sleep(150)
-    out := A_Temp . "\glazewm-workspaces.json"
-    RunWait(Format('{1} /c ""{2}\cli\glazewm.exe" query workspaces > "{3}""', A_ComSpec, GlazeDir, out), , "Hide")
-    try json := FileRead(out)
-    catch
-        return
-    used := Map()
-    focusedCount := 0
-    for part in StrSplit(json, '{"type":"workspace"') {
-        if !RegExMatch(part, '"name":"(\d+)"', &m)
-            continue
-        StrReplace(part, '"type":"window"', , , &count)
-        used[m[1]] := count
-        if InStr(part, '"hasFocus":true')
-            focusedCount := count
+    ; Find the app's desktop by its window handle. A window just launched may
+    ; take GlazeWM a moment to pick up.
+    Loop 10 {
+        used := Map(), id := "", count := 0
+        for part in StrSplit(GlazeSend("query workspaces"), '{"type":"workspace"') {
+            if !RegExMatch(part, '^,"id":"[^"]+","name":"(\d+)"', &ws)
+                continue
+            windows := GlazeWindowIds(part)
+            used[ws[1]] := windows.Count
+            if windows.Has(hwnd)
+                id := windows[hwnd], count := windows.Count
+        }
+        if id
+            break
+        Sleep(30)
     }
-    if focusedCount <= 1
+    if count <= 1
         return
     Loop 9 {
         if !used.Has(A_Index . "") || used[A_Index . ""] = 0 {
-            Glaze("move --workspace " . A_Index, true)
+            ; By id, since GlazeWM may not have seen the focus change yet.
+            Glaze("--id " . id . " move --workspace " . A_Index)
             Glaze("focus --workspace " . A_Index)
             return
         }
     }
+}
+
+; Window handle -> GlazeWM container id, for every window in a query reply.
+GlazeWindowIds(json) {
+    ids := Map()
+    pos := 1
+    while pos := RegExMatch(json, '\{"type":"window","id":"([0-9a-f-]+)".*?"handle":(\d+),"title"', &w, pos) {
+        ids[w[2] + 0] := w[1]
+        pos += w.Len
+    }
+    return ids
 }
 
 ; A lone tap of the left Ctrl key opens Start, as a Win tap would.
@@ -320,7 +485,7 @@ RegisterAppHotkeys() {
     Hotkey(">!Enter", SwitchToPreviousApp)
     Hotkey(">!+Enter", SwitchToPreviousApp)
     for dir in ["Left", "Right", "Up", "Down"]
-        Hotkey(">!" . dir, Glaze.Bind("move --direction " . StrLower(dir), false))
+        Hotkey(">!" . dir, Glaze.Bind("move --direction " . StrLower(dir)))
 
     Loop 9 {
         Hotkey(">!" . A_Index, JumpToTab.Bind(A_Index))
@@ -344,8 +509,8 @@ KeyActions() {
     static actions := Map(
         "v", OpenClipboardHistory,
         "c", Capture,
-        "Space", Glaze.Bind("toggle-floating --centered", false),   ; out of the grid and back
-        "Backspace", Glaze.Bind("toggle-minimized", false))         ; the rest re-tile
+        "Space", Glaze.Bind("toggle-floating --centered"),   ; out of the grid and back
+        "Backspace", Glaze.Bind("toggle-minimized"))         ; the rest re-tile
     return actions
 }
 
@@ -426,33 +591,27 @@ JumpToTab(n, *) {
     if !app
         return
     if !WinActive(app.Criteria) {
-        hwnd := WinExist(app.Criteria)
-        if !hwnd
-            return SwitchMappedApp("a")
-        if WinGetMinMax(hwnd) = -1
-            WinRestore(hwnd)
-        WinActivate(hwnd)
-        if !WinWaitActive(hwnd, , 1)
+        SwitchMappedApp("a")
+        if !WinActive(app.Criteria) && !WinWaitActive(app.Criteria, , 1)
             return
     }
     Send("^" . n)
 }
 
+; apps.ini is read once; reload the script after editing it.
 ReadApp(key) {
-    global AppsIni
-    raw := IniRead(AppsIni, "apps", key, "")
-    if raw = ""
-        return false
-
-    parts := StrSplit(raw, "|")
-    if parts.Length < 3
-        return false
-
-    return {
-        Name: Trim(parts[1]),
-        Criteria: Trim(parts[2]),
-        Command: ExpandEnv(Trim(parts[3]))
-    }
+    global AppsIni, Apps
+    if Apps.Has(key)
+        return Apps[key]
+    app := false
+    parts := StrSplit(IniRead(AppsIni, "apps", key, ""), "|")
+    if parts.Length >= 3
+        app := {
+            Name: Trim(parts[1]),
+            Criteria: Trim(parts[2]),
+            Command: ExpandEnv(Trim(parts[3]))
+        }
+    return Apps[key] := app
 }
 
 ExpandEnv(text) {
@@ -472,13 +631,24 @@ SwitchMappedApp(key, *) {
         return
     }
 
-    try windows := WinGetList(app.Criteria)
+    ; GlazeWM hides the windows on other desktops, so look at hidden windows
+    ; too, and keep the hidden ones GlazeWM manages: those it can bring back.
+    ; The rest are an app's own hidden helper windows.
+    glazed := GlazeConnected() ? GlazeWindowIds(GlazeSend("query windows")) : Map()
+    DetectHiddenWindows(true)
+    try found := WinGetList(app.Criteria)
     catch Error as err {
+        DetectHiddenWindows(false)
         Notify("Invalid window criteria for " . app.Name . ": " . err.Message)
         return
     }
+    DetectHiddenWindows(false)
+    windows := []
+    for hwnd in found
+        if glazed.Has(hwnd) || DllCall("IsWindowVisible", "Ptr", hwnd)
+            windows.Push(hwnd)
     if windows.Length {
-        CycleWindows(windows)
+        CycleWindows(windows, glazed)
         return
     }
 
@@ -499,7 +669,7 @@ SwitchMappedApp(key, *) {
     }
 }
 
-CycleWindows(windows) {
+CycleWindows(windows, glazed) {
     active := WinExist("A")
     target := windows[1]
 
@@ -510,6 +680,10 @@ CycleWindows(windows) {
         }
     }
 
+    ; A window on another desktop: GlazeWM switches there and focuses it.
+    if glazed.Has(target) && !DllCall("IsWindowVisible", "Ptr", target)
+        && Glaze("focus --container-id " . glazed[target]) != ""
+        return
     try {
         if WinGetMinMax(target) = -1
             WinRestore(target)
